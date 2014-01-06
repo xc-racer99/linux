@@ -886,6 +886,7 @@ static int s3c_onenand_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	this = (struct onenand_chip *) &mtd[1];
+	mtd->name = dev_name(&pdev->dev);
 	mtd->priv = this;
 	mtd->dev.parent = &pdev->dev;
 	mtd_set_of_node(mtd, np);

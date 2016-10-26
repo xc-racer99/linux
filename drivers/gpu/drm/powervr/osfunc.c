@@ -2524,8 +2524,15 @@ PVRSRV_ERROR OSAcquirePhysPageAddr(IMG_VOID *pvCPUVAddr,
     down_read(&current->mm->mmap_sem);
     bMMapSemHeld = IMG_TRUE;
 
-    
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
+    /* first two paramters became unavailable/not necessary in 4.9-rc3
+     * and write=1, force=0 has been merged into single parameter FOLL_WRITE | 0&FOLL_FORCE
+     */
+    psInfo->iNumPagesMapped = get_user_pages(ulStartAddr, psInfo->iNumPages, FOLL_WRITE, psInfo->ppsPages, NULL);
+#else    
     psInfo->iNumPagesMapped = get_user_pages(current, current->mm, ulStartAddr, psInfo->iNumPages, 1, 0, psInfo->ppsPages, NULL);
+#endif
 
     if (psInfo->iNumPagesMapped >= 0)
     {

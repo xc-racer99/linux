@@ -20,6 +20,8 @@
 #include <linux/kernel.h>
 #include <linux/lcd.h>
 #include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/wait.h>
 
@@ -44,6 +46,7 @@ struct s6e63m0 {
 	struct lcd_device		*ld;
 	struct backlight_device		*bd;
 	struct lcd_platform_data	*lcd_pd;
+	int reset_gpio;
 };
 
 static const unsigned short seq_panel_condition_set[] = {
@@ -504,21 +507,8 @@ static int s6e63m0_power_on(struct s6e63m0 *lcd)
 	pd = lcd->lcd_pd;
 	bd = lcd->bd;
 
-	if (!pd->power_on) {
-		dev_err(lcd->dev, "power_on is NULL.\n");
-		return -EINVAL;
-	}
-
-	pd->power_on(lcd->ld, 1);
-	msleep(pd->power_on_delay);
-
-	if (!pd->reset) {
-		dev_err(lcd->dev, "reset is NULL.\n");
-		return -EINVAL;
-	}
-
-	pd->reset(lcd->ld);
-	msleep(pd->reset_delay);
+	gpio_set_value(lcd->reset_gpio, 1);
+	msleep(120);
 
 	ret = s6e63m0_ldi_init(lcd);
 	if (ret) {
@@ -555,9 +545,7 @@ static int s6e63m0_power_off(struct s6e63m0 *lcd)
 		return -EIO;
 	}
 
-	msleep(pd->power_off_delay);
-
-	pd->power_on(lcd->ld, 0);
+	msleep(200);
 
 	return 0;
 }
@@ -707,11 +695,17 @@ static DEVICE_ATTR(gamma_table, 0444,
 
 static int s6e63m0_probe(struct spi_device *spi)
 {
+	struct device_node *np = spi->dev.of_node;
 	int ret = 0;
 	struct s6e63m0 *lcd = NULL;
 	struct lcd_device *ld = NULL;
 	struct backlight_device *bd = NULL;
 	struct backlight_properties props;
+
+	if (!np) {
+		dev_err(&spi->dev, "device must be instantiated using DT\n");
+		return -EINVAL;
+	}
 
 	lcd = devm_kzalloc(&spi->dev, sizeof(struct s6e63m0), GFP_KERNEL);
 	if (!lcd)
@@ -754,6 +748,18 @@ static int s6e63m0_probe(struct spi_device *spi)
 
 	bd->props.brightness = MAX_BRIGHTNESS;
 	lcd->bd = bd;
+
+
+	lcd->reset_gpio = of_get_named_gpio(np, "reset-gpios", 0);
+	if (lcd->reset_gpio < 0)
+		return lcd->reset_gpio;
+
+	ret = devm_gpio_request_one(lcd->dev, lcd->reset_gpio,
+					GPIOF_OUT_INIT_HIGH, "s6d04d1-reset");
+	if (ret) {
+		dev_err(&spi->dev, "failed to request reset GPIO\n");
+		return ret;
+	}
 
 	/*
 	 * it gets gamma table count available so it gets user
@@ -839,10 +845,18 @@ static void s6e63m0_shutdown(struct spi_device *spi)
 	s6e63m0_power(lcd, FB_BLANK_POWERDOWN);
 }
 
+#ifdef CONFIG_OF
+static const struct of_device_id s6e63m0_of_match[] = {
+	{ .compatible = "samsung,s6e63m0", },
+	{ /* sentinel */ }
+};
+#endif
+
 static struct spi_driver s6e63m0_driver = {
 	.driver = {
 		.name	= "s6e63m0",
 		.pm	= &s6e63m0_pm_ops,
+		.of_match_table = of_match_ptr(s6e63m0_of_match),
 	},
 	.probe		= s6e63m0_probe,
 	.remove		= s6e63m0_remove,

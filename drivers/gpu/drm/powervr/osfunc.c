@@ -1857,10 +1857,15 @@ static void OSTimerCallbackBody(TIMER_CALLBACK_DATA *psTimerCBData)
     mod_timer(&psTimerCBData->sTimer, psTimerCBData->ui32Delay + jiffies);
 }
 
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
+static IMG_VOID OSTimerCallbackWrapper(struct timer_list *t)
+{
+    TIMER_CALLBACK_DATA	*psTimerCBData = from_timer(psTimerCBData, t, sTimer);
+#else
 static IMG_VOID OSTimerCallbackWrapper(IMG_UINT32 ui32Data)
 {
     TIMER_CALLBACK_DATA	*psTimerCBData = (TIMER_CALLBACK_DATA*)ui32Data;
+#endif
     
 #if defined(PVR_LINUX_TIMERS_USING_WORKQUEUES) || defined(PVR_LINUX_TIMERS_USING_SHARED_WORKQUEUE)
     int res;
@@ -1940,13 +1945,17 @@ IMG_HANDLE OSAddTimer(PFN_TIMER_FUNC pfnTimerFunc, IMG_VOID *pvData, IMG_UINT32 
     psTimerCBData->ui32Delay = ((HZ * ui32MsTimeout) < 1000)
                                 ?	1
                                 :	((HZ * ui32MsTimeout) / 1000);
-    
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
+    timer_setup(&psTimerCBData->sTimer, OSTimerCallbackWrapper, 0);
+#else
     init_timer(&psTimerCBData->sTimer);
     
     
      
     psTimerCBData->sTimer.function = (IMG_VOID *)OSTimerCallbackWrapper;
     psTimerCBData->sTimer.data = (IMG_UINT32)psTimerCBData;
+#endif
     
     return (IMG_HANDLE)(ui32i + 1);
 }

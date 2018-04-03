@@ -1,0 +1,13 @@
+config NET_SAMSUNG_IPC
+	tristate "Samsung IPC network protocol support"
+	depends on OF
+	---help---
+	  This driver adds support for devices (usually modems) speaking
+	  Samsung's IPC protocol. This protocol multiplexes a number of different
+	  command streams and raw network interfaces over a single link.
+
+	  This driver merely provides the user-spacing interface: network and misc devices
+	  used for network traffic and for controlling the modem. You need to select one or more
+	  link devices (MIPI-HSI, USB, etc.) to actually use this.
+
+	  If unsure, say N.

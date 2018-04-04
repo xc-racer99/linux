@@ -533,6 +533,8 @@ static int sipc_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
+	platform_set_drvdata(pdev, sipc);
+
 	sipc->link_cb.receive = sipc_receive_callback;
 
 	callbacks = &sipc->link_cb;
@@ -547,6 +549,7 @@ static int sipc_probe(struct platform_device *pdev)
 
 	for (i = 0; i < sipc->nchannels; i++) {
 		chan = &sipc->channels[i];
+		chan->sipc = sipc;
 		switch (chan->type) {
 		case SAMSUNG_IPC_TYPE_MISC:
 			init_waitqueue_head(&chan->wq);
@@ -591,14 +594,45 @@ static int sipc_probe(struct platform_device *pdev)
 
 static int sipc_remove(struct platform_device *pdev)
 {
+	int i;
+	struct sipc_io_channel *chan;
+	struct samsung_ipc *sipc = platform_get_drvdata(pdev);
+
+	for (i = 0; i < SAMSUNG_IPC_FORMAT_MAX; i++) {
+		if (cur_links[i])
+			cur_links[i]->set_callbacks(cur_links[i], NULL);
+	}
+
+	destroy_workqueue(sipc->tx_wq);
+	for (i = 0; i < sipc->nchannels; i++) {
+		chan = &sipc->channels[i];
+		switch (chan->type) {
+		case SAMSUNG_IPC_TYPE_MISC:
+			misc_deregister(&chan->miscdev);
+			break;
+		case SAMSUNG_IPC_TYPE_NETDEV:
+			unregister_netdev(chan->netdev);
+			free_netdev(chan->netdev);
+			break;
+		}
+	}
 	return 0;
 }
+
+static const struct of_device_id sipc_of_match[] = {
+	{
+		.compatible = "samsung,sipc4-modem",
+	},
+	{ /* sentinel */ },
+};
+MODULE_DEVICE_TABLE(of, sipc_of_match);
 
 static struct platform_driver sipc_driver = {
 	.probe = sipc_probe,
 	.remove = sipc_remove,
 	.driver = {
 		.name = "samsung_ipc",
+		.of_match_table = of_match_ptr(sipc_of_match),
 	},
 };
 

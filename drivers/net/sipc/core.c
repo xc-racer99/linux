@@ -5,6 +5,7 @@
 // Copyright (C) 2018 Simon Shields <simon@lineageos.org>
 //
 #include <dt-bindings/net/samsung_ipc.h>
+#include <linux/ip.h>
 #include <linux/miscdevice.h>
 #include <linux/netdevice.h>
 #include <linux/module.h>
@@ -135,6 +136,41 @@ static int sipc_get_message_size(struct sipc_io_channel *chan)
 	}
 }
 
+static void sipc_netdev_rx(struct work_struct *work)
+{
+	struct sipc_io_channel *chan = container_of(work, struct sipc_io_channel,
+			raw_rx_work.work);
+	struct sk_buff *skb;
+	struct net_device *ndev = chan->netdev;
+	struct iphdr *ip_header;
+	int ret;
+
+	while ((skb = skb_dequeue(&chan->rx_queue)) != NULL) {
+		skb->dev = ndev;
+		ndev->stats.rx_packets++;
+		ndev->stats.rx_bytes += skb->len;
+
+		/* figure out IP version */
+		ip_header = (struct iphdr *)skb->data;
+		if (ip_header->version == 6)
+			skb->protocol = htons(ETH_P_IPV6);
+		else
+			skb->protocol = htons(ETH_P_IP);
+
+		if (in_irq())
+			ret = netif_rx(skb);
+		else
+			ret = netif_rx_ni(skb);
+
+		if (ret != NET_RX_SUCCESS) {
+			dev_err(&ndev->dev, "failed to rx packet: %d\n", ret);
+			dev_kfree_skb_any(skb);
+			/* try rx again in a bit... */
+			schedule_delayed_work(&chan->raw_rx_work, msecs_to_jiffies(500));
+			break;
+		}
+	}
+}
 
 /*
  * Demultiplex multiplexed network data.
@@ -154,7 +190,10 @@ static int do_raw_rx(struct sk_buff *skb, struct sipc_io_channel *chan)
 	}
 
 	skb_queue_tail(&real_chan->rx_queue, skb);
-	// schedule_delayed_work
+	if (real_chan->type == SAMSUNG_IPC_TYPE_MISC)
+		wake_up(&chan->wq);
+	else
+		schedule_delayed_work(&chan->raw_rx_work, 0);
 	return 0;
 }
 
@@ -565,6 +604,7 @@ static int sipc_probe(struct platform_device *pdev)
 						ret);
 			break;
 		case SAMSUNG_IPC_TYPE_NETDEV:
+			INIT_DELAYED_WORK(&chan->raw_rx_work, sipc_netdev_rx);
 			skb_queue_head_init(&chan->rx_queue);
 			chan->netdev = alloc_netdev(sizeof(struct sipc_netdev_priv),
 					chan->name, NET_NAME_UNKNOWN, sipc_netdev_setup);

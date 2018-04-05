@@ -49,6 +49,9 @@ struct sipc_io_channel {
 	/* pending sk buffs */
 	struct sk_buff *fmt_skb[128];
 
+	/* per-network interface RX */
+	struct delayed_work raw_rx_work;
+
 	/* sometimes a packet might come over multiple frames */
 	struct hdlc_header pending_rx_header;
 	struct sk_buff *pending_rx_skb;

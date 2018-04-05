@@ -374,9 +374,9 @@ static void sipc_receive_callback(struct sipc_link_callback *cb, void *b,
 	struct samsung_ipc *sipc = cb_to_ipc(cb);
 	struct sipc_io_channel *chan = find_io_channel(sipc, -1, format);
 	struct sk_buff *skb = NULL;
-	size_t len, done, packet_size;
+	size_t len = 0, done = 0, packet_size = 0;
 	int header_size = sipc_get_header_size(format);
-	size_t data_size, rest_size;
+	size_t data_size = 0, rest_size = 0;
 	char *buf = (char *)b;
 
 	if (format == SAMSUNG_IPC_FORMAT_CMD) {

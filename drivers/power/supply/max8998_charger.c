@@ -21,6 +21,7 @@
 
 #include <linux/err.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
@@ -82,6 +83,49 @@ static const struct power_supply_desc max8998_battery_desc = {
 	.num_properties	= ARRAY_SIZE(max8998_battery_props),
 };
 
+static int max8998_pmic_dt_parse_pdata(struct max8998_dev *iodev,
+					struct max8998_platform_data *pdata)
+{
+	struct device_node *pmic_np = iodev->dev->of_node;
+	struct device_node *charger_np;
+	int ret;
+
+	charger_np = of_get_child_by_name(pmic_np, "charger");
+	if (!charger_np) {
+		dev_err(iodev->dev, "could not find charger sub-node\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(charger_np,
+					"max8998,charge-eoc",
+					&pdata->eoc);
+	if (ret < 0) {
+		dev_err(iodev->dev,
+			"Could not find max8998,charge-eoc in devicetree\n");
+		return ret;
+	}
+
+	ret = of_property_read_u32(charger_np,
+					"max8998,charge-restart",
+					&pdata->restart);
+	if (ret < 0) {
+		dev_err(iodev->dev,
+			"Could not find max8998,charge-restart in devicetree\n");
+		return ret;
+	}
+
+	ret = of_property_read_u32(charger_np,
+					"max8998,charge-timeout",
+					&pdata->timeout);
+	if (ret < 0) {
+		dev_err(iodev->dev,
+			"Could not find max8998,charge-timeout in devicetree\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static int max8998_battery_probe(struct platform_device *pdev)
 {
 	struct max8998_dev *iodev = dev_get_drvdata(pdev->dev.parent);
@@ -94,6 +138,12 @@ static int max8998_battery_probe(struct platform_device *pdev)
 	if (!pdata) {
 		dev_err(pdev->dev.parent, "No platform init data supplied\n");
 		return -ENODEV;
+	}
+
+	if (IS_ENABLED(CONFIG_OF) && iodev->dev->of_node) {
+		ret = max8998_pmic_dt_parse_pdata(iodev, pdata);
+		if (ret)
+			return ret;
 	}
 
 	max8998 = devm_kzalloc(&pdev->dev, sizeof(struct max8998_battery_data),

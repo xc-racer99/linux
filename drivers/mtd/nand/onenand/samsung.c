@@ -136,7 +136,6 @@ struct s3c_onenand {
 	void		*oob_buf;
 	unsigned int	(*mem_addr)(int fba, int fpa, int fsa);
 	unsigned int	(*cmd_map)(unsigned int type, unsigned int val);
-	void __iomem	*dma_addr;
 	unsigned long	phys_base;
 	struct completion	complete;
 };
@@ -522,7 +521,7 @@ static int (*s5pc110_dma_ops)(dma_addr_t dst, dma_addr_t src, size_t count, int 
 
 static int s5pc110_dma_poll(dma_addr_t dst, dma_addr_t src, size_t count, int direction)
 {
-	void __iomem *base = onenand->dma_addr;
+	void __iomem *base = onenand->base;
 	int status;
 	unsigned long timeout;
 
@@ -566,7 +565,7 @@ static int s5pc110_dma_poll(dma_addr_t dst, dma_addr_t src, size_t count, int di
 
 static irqreturn_t s5pc110_onenand_irq(int irq, void *data)
 {
-	void __iomem *base = onenand->dma_addr;
+	void __iomem *base = onenand->base;
 	int status, cmd = 0;
 
 	status = readl(base + S5PC110_INTC_DMA_STATUS);
@@ -588,7 +587,7 @@ static irqreturn_t s5pc110_onenand_irq(int irq, void *data)
 
 static int s5pc110_dma_irq(dma_addr_t dst, dma_addr_t src, size_t count, int direction)
 {
-	void __iomem *base = onenand->dma_addr;
+	void __iomem *base = onenand->base;
 	int status;
 
 	status = readl(base + S5PC110_INTC_DMA_MASK);
@@ -637,7 +636,7 @@ static int s5pc110_read_bufferram(struct mtd_info *mtd, int area,
 	}
 
 	if (offset & 3 || (size_t) buf & 3 ||
-		!onenand->dma_addr || count != mtd->writesize)
+		!onenand->base || count != mtd->writesize)
 		goto normal;
 
 	/* Handle vmalloc address */
@@ -900,19 +899,18 @@ static int s3c_onenand_probe(struct platform_device *pdev)
 	if (IS_ERR(onenand->base))
 		return PTR_ERR(onenand->base);
 
+	r = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	onenand->ahb_addr = devm_ioremap_resource(&pdev->dev, r);
+	if (IS_ERR(onenand->ahb_addr))
+		return PTR_ERR(onenand->ahb_addr);
 	onenand->phys_base = r->start;
-
-	/* Set onenand_chip also */
-	this->base = onenand->base;
 
 	/* Use runtime badblock check */
 	this->options |= ONENAND_SKIP_UNLOCK_CHECK;
 
 	if (onenand->type != TYPE_S5PC110) {
-		r = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-		onenand->ahb_addr = devm_ioremap_resource(&pdev->dev, r);
-		if (IS_ERR(onenand->ahb_addr))
-			return PTR_ERR(onenand->ahb_addr);
+		/* Set onenand_chip also */
+		this->base = onenand->base;
 
 		/* Allocate 4KiB BufferRAM */
 		onenand->page_buf = devm_kzalloc(&pdev->dev, SZ_4K,
@@ -930,10 +928,8 @@ static int s3c_onenand_probe(struct platform_device *pdev)
 		this->subpagesize = mtd->writesize;
 
 	} else { /* S5PC110 */
-		r = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-		onenand->dma_addr = devm_ioremap_resource(&pdev->dev, r);
-		if (IS_ERR(onenand->dma_addr))
-			return PTR_ERR(onenand->dma_addr);
+		/* Set onenand_chip also */
+		this->base = onenand->ahb_addr;
 
 		s5pc110_dma_ops = s5pc110_dma_poll;
 		/* Interrupt support */

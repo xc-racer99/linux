@@ -23,7 +23,7 @@
 	};
 
 	chosen {
-		bootargs = "console=ttySAC2,115200n8 root=/dev/mmcblk0p5 rw rootwait ignore_loglevel earlyprintk";
+		bootargs = "console=ttySAC2,115200n8 ignore_loglevel earlyprintk androidboot.mode=charger androidboot.hardware=aries";
 	};
 
 	memory@30000000 {

@@ -20,6 +20,9 @@
 #include <linux/kernel.h>
 #include <linux/lcd.h>
 #include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_gpio.h>
+#include <linux/regulator/consumer.h>
 #include <linux/spi/spi.h>
 #include <linux/wait.h>
 
@@ -43,7 +46,14 @@ struct s6e63m0 {
 	unsigned int			gamma_table_count;
 	struct lcd_device		*ld;
 	struct backlight_device		*bd;
-	struct lcd_platform_data	*lcd_pd;
+
+	struct regulator_bulk_data supplies[2];
+	int reset_gpio;
+	int lcd_enabled;
+
+	unsigned int reset_delay;
+	unsigned int power_on_delay;
+	unsigned int power_off_delay;
 };
 
 static const unsigned short seq_panel_condition_set[] = {
@@ -498,27 +508,20 @@ static int s6e63m0_power_is_on(int power)
 static int s6e63m0_power_on(struct s6e63m0 *lcd)
 {
 	int ret = 0;
-	struct lcd_platform_data *pd;
 	struct backlight_device *bd;
 
-	pd = lcd->lcd_pd;
 	bd = lcd->bd;
 
-	if (!pd->power_on) {
-		dev_err(lcd->dev, "power_on is NULL.\n");
-		return -EINVAL;
-	}
+	ret = regulator_bulk_enable(ARRAY_SIZE(lcd->supplies), lcd->supplies);
+	if (ret)
+		return ret;
 
-	pd->power_on(lcd->ld, 1);
-	msleep(pd->power_on_delay);
+	msleep(lcd->power_on_delay);
 
-	if (!pd->reset) {
-		dev_err(lcd->dev, "reset is NULL.\n");
-		return -EINVAL;
-	}
+	// TODO - Check if this is output - 	gpio_direction_output(reset_gpio, 1);
+	gpio_set_value(lcd->reset_gpio, 1);
 
-	pd->reset(lcd->ld);
-	msleep(pd->reset_delay);
+	msleep(lcd->reset_delay);
 
 	ret = s6e63m0_ldi_init(lcd);
 	if (ret) {
@@ -545,9 +548,6 @@ static int s6e63m0_power_on(struct s6e63m0 *lcd)
 static int s6e63m0_power_off(struct s6e63m0 *lcd)
 {
 	int ret;
-	struct lcd_platform_data *pd;
-
-	pd = lcd->lcd_pd;
 
 	ret = s6e63m0_ldi_disable(lcd);
 	if (ret) {
@@ -555,9 +555,11 @@ static int s6e63m0_power_off(struct s6e63m0 *lcd)
 		return -EIO;
 	}
 
-	msleep(pd->power_off_delay);
+	msleep(lcd->power_off_delay);
 
-	pd->power_on(lcd->ld, 0);
+	ret = regulator_bulk_disable(ARRAY_SIZE(lcd->supplies), lcd->supplies);
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -708,10 +710,16 @@ static DEVICE_ATTR(gamma_table, 0444,
 static int s6e63m0_probe(struct spi_device *spi)
 {
 	int ret = 0;
+	struct device_node *np = spi->dev.of_node;
 	struct s6e63m0 *lcd = NULL;
 	struct lcd_device *ld = NULL;
 	struct backlight_device *bd = NULL;
 	struct backlight_properties props;
+
+	if (!np) {
+		dev_err(&spi->dev, "device must be instantiated using DT\n");
+		return -EINVAL;
+	}
 
 	lcd = devm_kzalloc(&spi->dev, sizeof(struct s6e63m0), GFP_KERNEL);
 	if (!lcd)
@@ -728,12 +736,8 @@ static int s6e63m0_probe(struct spi_device *spi)
 
 	lcd->spi = spi;
 	lcd->dev = &spi->dev;
-
-	lcd->lcd_pd = dev_get_platdata(&spi->dev);
-	if (!lcd->lcd_pd) {
-		dev_err(&spi->dev, "platform data is NULL.\n");
-		return -EINVAL;
-	}
+	lcd->supplies[0].supply = "vdd3";
+	lcd->supplies[1].supply = "vci";
 
 	ld = devm_lcd_device_register(&spi->dev, "s6e63m0", &spi->dev, lcd,
 				&s6e63m0_lcd_ops);
@@ -770,11 +774,43 @@ static int s6e63m0_probe(struct spi_device *spi)
 	if (ret < 0)
 		dev_err(&(spi->dev), "failed to add sysfs entries\n");
 
+	lcd->reset_gpio = of_get_named_gpio(np, "reset-gpio", 0);
+	if (lcd->reset_gpio < 0)
+		return lcd->reset_gpio;
+
+	ret = devm_regulator_bulk_get(lcd->dev, ARRAY_SIZE(lcd->supplies),
+					lcd->supplies);
+	if (ret)
+		return ret;
+
+	ret = devm_gpio_request_one(lcd->dev, lcd->reset_gpio,
+					GPIOF_OUT_INIT_HIGH, "s6e63m0-reset");
+
+	lcd->lcd_enabled = of_property_read_bool(np, "default-on");
+
+	ret = of_property_read_u32(np, "reset_delay", &(lcd->reset_delay));
+	if (ret) {
+		dev_warn(&(spi->dev), "failed to determine reset_delay, using default of 120ms");
+		lcd->reset_delay = 120;
+	}
+
+	ret = of_property_read_u32(np, "power_on_delay", &(lcd->power_on_delay));
+	if (ret) {
+		dev_warn(&(spi->dev), "failed to determine power_on_delay, using default of 25ms");
+		lcd->power_on_delay = 25;
+	}
+
+	ret = of_property_read_u32(np, "power_off_delay", &(lcd->power_off_delay));
+	if (ret) {
+		dev_warn(&(spi->dev), "failed to determine power_off_delay, using default of 200ms");
+		lcd->power_off_delay = 200;
+	}
+
 	/*
 	 * if lcd panel was on from bootloader like u-boot then
 	 * do not lcd on.
 	 */
-	if (!lcd->lcd_pd->lcd_enabled) {
+	if (!lcd->lcd_enabled) {
 		/*
 		 * if lcd panel was off from bootloader then
 		 * current lcd status is powerdown and then
@@ -782,9 +818,17 @@ static int s6e63m0_probe(struct spi_device *spi)
 		 */
 		lcd->power = FB_BLANK_POWERDOWN;
 
+		ret = regulator_bulk_enable(ARRAY_SIZE(lcd->supplies),
+						lcd->supplies);
+
 		s6e63m0_power(lcd, FB_BLANK_UNBLANK);
 	} else {
 		lcd->power = FB_BLANK_UNBLANK;
+	}
+
+	if (ret) {
+		dev_err(&spi->dev, "failed to request reset GPIO\n");
+		return ret;
 	}
 
 	spi_set_drvdata(spi, lcd);
@@ -839,10 +883,20 @@ static void s6e63m0_shutdown(struct spi_device *spi)
 	s6e63m0_power(lcd, FB_BLANK_POWERDOWN);
 }
 
+#ifdef CONFIG_OF
+static const struct of_device_id s6e63m0_of_match[] = {
+	{ .compatible = "samsung,s6e63m0", },
+	{ /* sentinel */ }
+};
+#endif
+
 static struct spi_driver s6e63m0_driver = {
 	.driver = {
 		.name	= "s6e63m0",
 		.pm	= &s6e63m0_pm_ops,
+#ifdef CONFIG_OF
+		.of_match_table = of_match_ptr(s6e63m0_of_match),
+#endif
 	},
 	.probe		= s6e63m0_probe,
 	.remove		= s6e63m0_remove,

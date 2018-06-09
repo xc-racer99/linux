@@ -518,8 +518,7 @@ static int s6e63m0_power_on(struct s6e63m0 *lcd)
 
 	msleep(lcd->power_on_delay);
 
-	// TODO - Check if this is output - 	gpio_direction_output(reset_gpio, 1);
-	gpio_set_value(lcd->reset_gpio, 1);
+	gpio_direction_output(lcd->reset_gpio, 1);
 
 	msleep(lcd->reset_delay);
 
@@ -741,8 +740,10 @@ static int s6e63m0_probe(struct spi_device *spi)
 
 	ld = devm_lcd_device_register(&spi->dev, "s6e63m0", &spi->dev, lcd,
 				&s6e63m0_lcd_ops);
-	if (IS_ERR(ld))
+	if (IS_ERR(ld)) {
+		dev_err(&spi->dev, "lcd device registration failed\n");
 		return PTR_ERR(ld);
+	}
 
 	lcd->ld = ld;
 
@@ -753,8 +754,10 @@ static int s6e63m0_probe(struct spi_device *spi)
 	bd = devm_backlight_device_register(&spi->dev, "s6e63m0bl-bl",
 					&spi->dev, lcd, &s6e63m0_backlight_ops,
 					&props);
-	if (IS_ERR(bd))
+	if (IS_ERR(bd)) {
+		dev_err(&spi->dev, "backlight device registration failed\n");
 		return PTR_ERR(bd);
+	}
 
 	bd->props.brightness = MAX_BRIGHTNESS;
 	lcd->bd = bd;
@@ -774,35 +777,44 @@ static int s6e63m0_probe(struct spi_device *spi)
 	if (ret < 0)
 		dev_err(&(spi->dev), "failed to add sysfs entries\n");
 
-	lcd->reset_gpio = of_get_named_gpio(np, "reset-gpio", 0);
-	if (lcd->reset_gpio < 0)
+	lcd->reset_gpio = of_get_named_gpio(np, "reset-gpios", 0);
+	if (lcd->reset_gpio < 0) {
+		dev_err(&(spi->dev), "failed to get reset-gpios\n");
 		return lcd->reset_gpio;
+	}
 
 	ret = devm_regulator_bulk_get(lcd->dev, ARRAY_SIZE(lcd->supplies),
 					lcd->supplies);
-	if (ret)
+	if (ret) {
+		dev_err(&spi->dev, "failed to get regulators\n");
 		return ret;
+	}
 
 	ret = devm_gpio_request_one(lcd->dev, lcd->reset_gpio,
 					GPIOF_OUT_INIT_HIGH, "s6e63m0-reset");
+
+	if (ret) {
+		dev_err(&spi->dev, "failed to request reset GPIO\n");
+		return ret;
+	}
 
 	lcd->lcd_enabled = of_property_read_bool(np, "default-on");
 
 	ret = of_property_read_u32(np, "reset_delay", &(lcd->reset_delay));
 	if (ret) {
-		dev_warn(&(spi->dev), "failed to determine reset_delay, using default of 120ms");
+		dev_info(&(spi->dev), "using default reset_delay of 120ms");
 		lcd->reset_delay = 120;
 	}
 
 	ret = of_property_read_u32(np, "power_on_delay", &(lcd->power_on_delay));
 	if (ret) {
-		dev_warn(&(spi->dev), "failed to determine power_on_delay, using default of 25ms");
+		dev_info(&(spi->dev), "using default power_on_delay of 25ms");
 		lcd->power_on_delay = 25;
 	}
 
 	ret = of_property_read_u32(np, "power_off_delay", &(lcd->power_off_delay));
 	if (ret) {
-		dev_warn(&(spi->dev), "failed to determine power_off_delay, using default of 200ms");
+		dev_info(&(spi->dev), "using default power_of_delay of 200ms");
 		lcd->power_off_delay = 200;
 	}
 
@@ -820,15 +832,12 @@ static int s6e63m0_probe(struct spi_device *spi)
 
 		ret = regulator_bulk_enable(ARRAY_SIZE(lcd->supplies),
 						lcd->supplies);
+		if (ret)
+			dev_err(&spi->dev, "failed to enable regulators\n");
 
 		s6e63m0_power(lcd, FB_BLANK_UNBLANK);
 	} else {
 		lcd->power = FB_BLANK_UNBLANK;
-	}
-
-	if (ret) {
-		dev_err(&spi->dev, "failed to request reset GPIO\n");
-		return ret;
 	}
 
 	spi_set_drvdata(spi, lcd);

@@ -38,16 +38,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		vtf_reg: fixed-regulator@0 {
-			compatible = "regulator-fixed";
-			regulator-name = "V_TF_2.8V";
-			regulator-min-microvolt = <2800000>;
-			regulator-max-microvolt = <2800000>;
-			reg = <0>;
-			gpio = <&mp05 4 0>;
-			enable-active-high;
-		};
-
 		pda_reg: fixed-regulator@1 {
 			compatible = "regulator-fixed";
 			regulator-name = "VCC_1.8V_PDA";
@@ -317,7 +307,7 @@
 &sdhci2 {
 	bus-width = <4>;
 	cd-gpios = <&gph3 4 1>;
-	vmmc-supply = <&vtf_reg>;
+	vmmc-supply = <&ldo5_reg>;
 	cd-inverted;
 	pinctrl-0 = <&sd2_clk &sd2_cmd &sd2_bus4>;
 	pinctrl-names = "default";

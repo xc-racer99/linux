@@ -627,6 +627,14 @@
 				samsung,lcd-wb;
 			};
 		};
+
+		dmc0: dmc@f8440000 {
+			compatible = "samsung,s5pv210-dmc";
+		};
+
+		dmc0: dmc@f8480000 {
+			compatible = "samsung,s5pv210-dmc";
+		};
 	};
 };
 

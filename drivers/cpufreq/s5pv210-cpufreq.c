@@ -25,7 +25,9 @@
 #include <linux/regulator/consumer.h>
 
 static void __iomem *clk_base;
-static void __iomem *dmc_base[2];
+
+#define S5P_VA_DMC0		(void __iomem __force *)0xF8440000
+#define S5P_VA_DMC1		(void __iomem __force *)0xF8480000
 
 #define S5P_CLKREG(x)		(clk_base + (x))
 
@@ -203,9 +205,9 @@ static void s5pv210_set_refresh(enum s5pv210_dmc_port ch, unsigned long freq)
 	void __iomem *reg = NULL;
 
 	if (ch == DMC0) {
-		reg = (dmc_base[0] + 0x30);
+		reg = (S5P_VA_DMC0 + 0x30);
 	} else if (ch == DMC1) {
-		reg = (dmc_base[1] + 0x30);
+		reg = (S5P_VA_DMC1 + 0x30);
 	} else {
 		pr_err("Cannot find DMC port\n");
 		return;
@@ -528,7 +530,7 @@ static int s5pv210_cpu_init(struct cpufreq_policy *policy)
 	 * check_mem_type : This driver only support LPDDR & LPDDR2.
 	 * other memory type is not supported.
 	 */
-	mem_type = check_mem_type(dmc_base[0]);
+	mem_type = check_mem_type(S5P_VA_DMC0);
 
 	if ((mem_type != LPDDR) && (mem_type != LPDDR2)) {
 		pr_err("CPUFreq doesn't support this memory type\n");
@@ -537,10 +539,10 @@ static int s5pv210_cpu_init(struct cpufreq_policy *policy)
 	}
 
 	/* Find current refresh counter and frequency each DMC */
-	s5pv210_dram_conf[0].refresh = (readl_relaxed(dmc_base[0] + 0x30) * 1000);
+	s5pv210_dram_conf[0].refresh = (readl_relaxed(S5P_VA_DMC0 + 0x30) * 1000);
 	s5pv210_dram_conf[0].freq = clk_get_rate(dmc0_clk);
 
-	s5pv210_dram_conf[1].refresh = (readl_relaxed(dmc_base[1] + 0x30) * 1000);
+	s5pv210_dram_conf[1].refresh = (readl_relaxed(S5P_VA_DMC1 + 0x30) * 1000);
 	s5pv210_dram_conf[1].freq = clk_get_rate(dmc1_clk);
 
 	policy->suspend_freq = SLEEP_FREQ;
@@ -584,11 +586,10 @@ static struct notifier_block s5pv210_cpufreq_reboot_notifier = {
 static int s5pv210_cpufreq_probe(struct platform_device *pdev)
 {
 	struct device_node *np;
-	int id;
 
 	/*
 	 * HACK: This is a temporary workaround to get access to clock
-	 * and DMC controller registers directly and remove static mappings
+	 * registers directly and remove static mappings
 	 * and dependencies on platform headers. It is necessary to enable
 	 * S5PV210 multi-platform support and will be removed together with
 	 * this whole driver as soon as S5PV210 gets migrated to use
@@ -606,31 +607,6 @@ static int s5pv210_cpufreq_probe(struct platform_device *pdev)
 	if (!clk_base) {
 		pr_err("%s: failed to map clock registers\n", __func__);
 		return -EFAULT;
-	}
-
-	for_each_compatible_node(np, NULL, "samsung,s5pv210-dmc") {
-		id = of_alias_get_id(np, "dmc");
-		if (id < 0 || id >= ARRAY_SIZE(dmc_base)) {
-			pr_err("%s: failed to get alias of dmc node '%s'\n",
-				__func__, np->name);
-			of_node_put(np);
-			return id;
-		}
-
-		dmc_base[id] = of_iomap(np, 0);
-		if (!dmc_base[id]) {
-			pr_err("%s: failed to map dmc%d registers\n",
-				__func__, id);
-			of_node_put(np);
-			return -EFAULT;
-		}
-	}
-
-	for (id = 0; id < ARRAY_SIZE(dmc_base); ++id) {
-		if (!dmc_base[id]) {
-			pr_err("%s: failed to find dmc%d node\n", __func__, id);
-			return -ENODEV;
-		}
 	}
 
 	arm_regulator = regulator_get(NULL, "vddarm");

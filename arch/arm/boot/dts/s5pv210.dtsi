@@ -37,16 +37,35 @@
 		pinctrl0 = &pinctrl0;
 		spi0 = &spi0;
 		spi1 = &spi1;
+		dmc0 = &dmc0;
+		dmc1 = &dmc1;
 	};
 
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu@0 {
+		cpu0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a8";
 			reg = <0>;
+			/* TODO - is this correct? */
+			clocks = <&clocks DOUT_APLL>;
+			clock-names = "cpu";
+			/* TODO - What should this be? */
+			clock-latency = <160000>;
+
+			operating-points = <
+				1000000 1250000
+				800000	1200000
+				400000	1050000
+				200000	950000
+				/**
+				 * 100MHz frequency needs DMC and int freq
+				 * adjustments so it is disabled
+				 */
+				/* 100000	950000 */
+			>;
 		};
 	};
 
@@ -632,7 +651,7 @@
 			compatible = "samsung,s5pv210-dmc";
 		};
 
-		dmc0: dmc@f8480000 {
+		dmc1: dmc@f8480000 {
 			compatible = "samsung,s5pv210-dmc";
 		};
 	};

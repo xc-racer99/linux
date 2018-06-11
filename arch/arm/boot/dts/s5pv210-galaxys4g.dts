@@ -378,3 +378,7 @@
 &onenand {
 	status = "okay";
 };
+
+&cpu0 {
+	cpu0-supply = <&buck1_reg>;
+};

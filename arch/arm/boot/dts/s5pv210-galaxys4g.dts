@@ -262,25 +262,47 @@
 		};
 	};
 
-	spi_lcd: spi-1 {
+	spi-lcd {
 		compatible = "spi-gpio";
 		#address-cells = <1>;
 		#size-cells = <0>;
 
 		sck-gpios = <&mp04 1 0>;
 		mosi-gpios = <&mp04 3 0>;
-		cs-gpios = <&mp01 1 0>;
 		num-chipselects = <1>;
+		cs-gpios = <&mp01 1 0>;
 
-		s6e63m0: display@0 {
+		lcd@0 {
 			compatible = "samsung,s6e63m0";
 			reg = <0>;
 			reset-gpios = <&mp05 5 1>;
 			vdd3-supply = <&ldo17_reg>;
 			vci-supply = <&ldo7_reg>;
+			spi-max-frequency = <1200000>;
 			spi-cpol;
 			spi-cpha;
-			spi-max-frequency = <1200000>;
+			display-timings {
+				timing {
+					clock-frequency = <23492370>;
+					hactive = <480>;
+					vactive = <800>;
+					hback-porch = <16>;
+					hfront-porch = <16>;
+					vback-porch = <2>;
+					vfront-porch = <28>;
+					hsync-len = <2>;
+					vsync-len = <1>;
+					hsync-active = <0>;
+					vsync-active = <0>;
+					de-active = <0>;
+					pixelclk-active = <0>;
+				};
+			};
+			port {
+				lcd_ep: endpoint {
+					remote-endpoint = <&fimd_dpi_ep>;
+				};
+			};
 		};
 	};
 };
@@ -355,23 +377,14 @@
 	pinctrl-names = "default";
 	status = "okay";
 
-	display-timings {
-		native-mode = <&timing0>;
-		timing0: timing {
-			/* 480x800@55Hz */
-			clock-frequency = <23439570>;
-			hactive = <480>;
-			hfront-porch = <16>;
-			hback-porch = <16>;
-			hsync-len = <2>;
-			vactive = <800>;
-			vback-porch = <2>;
-			vfront-porch = <28>;
-			vsync-len = <1>;
-			hsync-active = <0>;
-			vsync-active = <0>;
-			de-active = <0>;
-			pixelclk-active = <0>;
+	samsung,invert-vden;
+	samsung,invert-vclk;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	port@3 {
+		reg = <3>;
+		fimd_dpi_ep: endpoint {
+			remote-endpoint = <&lcd_ep>;
 		};
 	};
 };

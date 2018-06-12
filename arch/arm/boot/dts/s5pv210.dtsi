@@ -537,6 +537,7 @@
 			interrupts = <0>, <1>, <2>;
 			clocks = <&clocks SCLK_FIMD>, <&clocks CLK_FIMD>;
 			clock-names = "sclk_fimd", "fimd";
+			samsung,sysreg = <&pmu_syscon>;
 			status = "disabled";
 		};
 

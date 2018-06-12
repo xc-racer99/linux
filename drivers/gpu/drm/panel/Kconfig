@@ -73,6 +73,11 @@ config DRM_PANEL_SAMSUNG_LD9040
 	depends on OF && SPI
 	select VIDEOMODE_HELPERS
 
+config DRM_PANEL_SAMSUNG_S6E63M0
+	tristate "Samsung S6E63M0 AMOLED/SPI panel"
+	depends on OF && SPI
+	select VIDEOMODE_HELPERS
+
 config DRM_PANEL_LG_LG4573
 	tristate "LG4573 RGB/SPI panel"
 	depends on OF && SPI

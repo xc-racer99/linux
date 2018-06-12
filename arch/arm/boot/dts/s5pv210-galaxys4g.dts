@@ -268,7 +268,6 @@
 		#size-cells = <0>;
 
 		sck-gpios = <&mp04 1 0>;
-		miso-gpios = <&mp04 2 0>;
 		mosi-gpios = <&mp04 3 0>;
 		cs-gpios = <&mp01 1 0>;
 		num-chipselects = <1>;
@@ -279,6 +278,8 @@
 			reset-gpios = <&mp05 5 1>;
 			vdd3-supply = <&ldo17_reg>;
 			vci-supply = <&ldo7_reg>;
+			spi-cpol;
+			spi-cpha;
 			spi-max-frequency = <1200000>;
 		};
 	};

@@ -547,6 +547,8 @@ static int s6e63m0_prepare(struct drm_panel *panel)
 		return ret;
 	}
 
+	dev_info(lcd->dev, "s6e63m0 prepared");
+
 	return 0;
 }
 
@@ -566,6 +568,8 @@ static int s6e63m0_unprepare(struct drm_panel *panel)
 	ret = regulator_bulk_disable(ARRAY_SIZE(lcd->supplies), lcd->supplies);
 	if (ret)
 		return ret;
+
+	dev_info(lcd->dev, "s6e63m0 unprepared");
 
 	return 0;
 }

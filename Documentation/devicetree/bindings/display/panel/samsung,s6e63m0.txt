@@ -1,0 +1,26 @@
+s6e63m0 AMOLED panel bindings
+
+Required properties:
+  - compatible: "samsung,s6e63m0"
+  - reset-gpio: GPIO to adjust when resetting the panel
+  - vdd3-supply: VDD regulator
+  - vci-supply: VCI regulator
+
+Optional properties:
+  - reset_delay: Delay in ms after adjusting reset-gpio, default 120ms
+  - power_on_delay: Delay in ms before powering on, default 25ms
+  - power_off_delay: Delay in ms after powering on, default 200ms
+  - lcd_enabled: If the panel is already powered on, eg from U-Boot
+
+[0]: Documentation/devicetree/bindings/gpio/gpio.txt
+
+Example:
+
+		s6d04d1: display@0 {
+			compatible = "samsung,s6e63m0";
+			reg = <0>;
+			reset-gpio = <&mp05 5 1>;
+			vdd3-supply = <&ldo12_reg>;
+			vci-supply = <&ldo11_reg>;
+			spi-max-frequency = <1000000>;
+		};

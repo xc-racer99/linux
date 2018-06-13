@@ -43,10 +43,25 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu@0 {
+		cpu0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a8";
 			reg = <0>;
+			clocks = <&clocks DOUT_APLL>;
+			clock-names = "cpu";
+			clock-latency = <40000>;
+
+			operating-points = <
+				1000000 1250000
+				800000	1200000
+				400000	1050000
+				200000	950000
+				/**
+				 * 100MHz frequency needs DMC and int freq
+				 * adjustments so it is disabled
+				 */
+				/* 100000	950000 */
+			>;
 		};
 	};
 

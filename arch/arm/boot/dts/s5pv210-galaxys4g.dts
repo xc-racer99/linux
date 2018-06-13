@@ -86,8 +86,8 @@
 
 			max8998,pmic-buck1-default-dvs-idx = <0>;
 			max8998,pmic-buck1-dvs-gpios = <&gph0 3 0>, <&gph0 4 0>;
-			max8998,pmic-buck1-dvs-voltage = <1325000>, <1250000>,
-							<1100000>, <1000000>;
+			max8998,pmic-buck1-dvs-voltage = <1250000>, <1200000>,
+							<1050000>, <950000>;
 
 			max8998,pmic-buck2-default-dvs-idx = <0>;
 			max8998,pmic-buck2-dvs-gpio = <&gph0 5 0>;

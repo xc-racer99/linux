@@ -46,6 +46,7 @@ static const struct of_device_id whitelist[] __initconst = {
 	{ .compatible = "marvell,pxa250", },
 	{ .compatible = "marvell,pxa270", },
 
+	{ .compatible = "samsung,s5pv210", },
 	{ .compatible = "samsung,exynos3250", },
 	{ .compatible = "samsung,exynos4210", },
 	{ .compatible = "samsung,exynos5250", },

@@ -277,18 +277,29 @@ static void sdhci_s3c_set_clock(struct sdhci_host *host, unsigned int clock)
 		host->ioaddr + S3C64XX_SDHCI_CONTROL4);
 
 	ctrl = readl(host->ioaddr + S3C_SDHCI_CONTROL2);
+	ctrl &= S3C_SDHCI_CTRL2_SELBASECLK_MASK;
 	ctrl |= (S3C64XX_SDHCI_CTRL2_ENSTAASYNCCLR |
 		  S3C64XX_SDHCI_CTRL2_ENCMDCNFMSK |
-		  S3C_SDHCI_CTRL2_ENFBCLKRX |
 		  S3C_SDHCI_CTRL2_DFCNT_NONE |
 		  S3C_SDHCI_CTRL2_ENCLKOUTHOLD);
-	writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL2);
 
-	/* reconfigure the controller for new clock rate */
-	ctrl = (S3C_SDHCI_CTRL3_FCSEL1 | S3C_SDHCI_CTRL3_FCSEL0);
-	if (clock < 25 * 1000000)
-		ctrl |= (S3C_SDHCI_CTRL3_FCSEL3 | S3C_SDHCI_CTRL3_FCSEL2);
-	writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL3);
+	if (clock <= (400 * 1000)) {
+		ctrl &= ~(S3C_SDHCI_CTRL2_ENFBCLKTX |
+			  S3C_SDHCI_CTRL2_ENFBCLKRX);
+		writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL2);
+		writel(0, host->ioaddr + S3C_SDHCI_CONTROL3);
+	} else {
+		ctrl |= S3C_SDHCI_CTRL2_ENFBCLKTX |
+			S3C_SDHCI_CTRL2_ENFBCLKRX;
+		writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL2);
+
+		if ((clock >  25 * 1000 * 1000) && (clock < 37 * 1000 * 1000))
+			ctrl = S3C_SDHCI_CTRL3_FCSEL3 | S3C_SDHCI_CTRL3_FCSEL2 |
+				S3C_SDHCI_CTRL3_FCSEL1 | S3C_SDHCI_CTRL3_FCSEL0;
+		else
+			ctrl = S3C_SDHCI_CTRL3_FCSEL3 | S3C_SDHCI_CTRL3_FCSEL2;
+		writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL3);
+	}
 
 	sdhci_set_clock(host, clock);
 }

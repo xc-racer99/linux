@@ -361,10 +361,9 @@
 
 &sdhci2 {
 	bus-width = <4>;
-	cd-gpios = <&gph3 4 1>;
 	vmmc-supply = <&ldo5_reg>;
-	cd-inverted;
-	pinctrl-0 = <&sd2_clk &sd2_cmd &sd2_bus4>;
+	cd-gpios = <&gph3 4 1>;
+	pinctrl-0 = <&sd2_clk &sd2_cmd &sd2_bus4 &tflash_det>;
 	pinctrl-names = "default";
 	status = "okay";
 };
@@ -442,5 +441,10 @@
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	tflash_det: tflash-det {
+		samsung,pins = "gph3-4";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_2>;
 	};
 };

@@ -57,13 +57,13 @@ struct tm2_touchkey_data {
 };
 
 static struct touchkey_variant tm2_touchkey_variant = {
-	.name = "tm2-touchkey",
+	.name = TM2_TOUCHKEY_DEV_NAME,
 	.keycode_reg = 0x03,
 	.base_reg = 0x00,
 };
 
 static struct touchkey_variant midas_touchkey_variant = {
-	.name = "midas-touchkey",
+	.name = MIDAS_TOUCHKEY_DEV_NAME,
 	.keycode_reg = 0x00,
 	.base_reg = 0x00,
 };

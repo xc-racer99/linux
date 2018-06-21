@@ -23,6 +23,13 @@
 			0x50000000 0x08000000>;
 	};
 
+	vibrator_pwr: vibrant-pwr {
+		compatible = "regulator-fixed";
+		regulator-name = "vibrator-en";
+		enable-active-high;
+		gpio = <&gpj1 1 GPIO_ACTIVE_HIGH>;
+	};
+
 	wifi_pwrseq: wifi-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&gpg1 2 GPIO_ACTIVE_LOW>;
@@ -261,6 +268,15 @@
 			reg = <0x36>;
 		};
 	};
+
+	vibrator: vibrator {
+		compatible = "pwm-vibrator";
+		pwms = <&pwm 1 44642 0>;
+		pwm-names = "enable";
+		vcc-supply = <&vibrator_pwr>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwm1_out>;
+	};
 };
 
 &xusbxti {
@@ -385,4 +401,8 @@
 			vsync-len = <2>;
 		};
 	};
+};
+
+&pwm {
+	samsung,pwm-outputs = <1>;
 };

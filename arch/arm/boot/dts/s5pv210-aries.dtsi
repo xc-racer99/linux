@@ -267,18 +267,15 @@
 
 				vichg_reg: ENVICHG {
 					regulator-name = "VICHG";
+					regulator-always-on;
 				};
 
 				safe1_sreg: ESAFEOUT1 {
 					regulator-name = "SAFEOUT1";
-					regulator-min-microvolt = <5000000>;
-					regulator-max-microvolt = <5000000>;
 				};
 
 				safe2_sreg: ESAFEOUT2 {
 					regulator-name = "SAFEOUT2";
-					regulator-min-microvolt = <5000000>;
-					regulator-max-microvolt = <5000000>;
 				};
 			};
 		};

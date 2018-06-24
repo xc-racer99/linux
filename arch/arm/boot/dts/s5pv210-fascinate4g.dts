@@ -10,7 +10,7 @@
 	compatible = "samsung,fascinate4g", "samsung,aries", "samsung,s5pv210";
 
 	chosen {
-		stdout-path = "serial2:115200n8";
+		stdout-path = &uart2;
 		/*
 		 * It's hard to change those parameters in stock bootloader,
 		 * since it requires special hardware/cable.

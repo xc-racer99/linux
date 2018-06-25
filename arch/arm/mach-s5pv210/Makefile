@@ -11,4 +11,4 @@ obj-$(CONFIG_PM_SLEEP)		+= pm.o sleep.o
 
 # machine support
 
-obj-y				+= s5pv210.o
+obj-y				+= pm_domains.o s5pv210.o

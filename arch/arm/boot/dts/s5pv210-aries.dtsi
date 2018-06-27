@@ -6,6 +6,7 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/power/s5pv210-power.h>
 #include "s5pv210.dtsi"
 
 / {
@@ -277,6 +278,13 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&pwm1_out>;
 	};
+
+	power_domain: power-domain {
+		compatible = "samsung,s5pv210-pd";
+		reg = <0xe010c010 0x20>,
+			<0xe010c204 0x20>;
+		#power-domain-cells = <1>;
+	};
 };
 
 &xusbxti {
@@ -378,6 +386,7 @@
 &fimd {
 	pinctrl-names = "default";
 	pinctrl-0 = <&lcd_clk &lcd_data24>;
+	power-domains = <&power_domain S5PV210_PD_LCD>;
 	status = "okay";
 
 	samsung,invert-vden;

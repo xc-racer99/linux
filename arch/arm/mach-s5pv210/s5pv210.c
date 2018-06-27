@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "regs-clock.h"
+#include "watchdog-reset.h"
 
 static int __init s5pv210_fdt_map_sys(unsigned long node, const char *uname,
 					int depth, void *data)
@@ -50,7 +51,15 @@ static void __init s5pv210_dt_map_io(void)
 
 static void s5pv210_dt_restart(enum reboot_mode mode, const char *cmd)
 {
+	if (mode != REBOOT_SOFT)
+		samsung_wdt_reset();
+
 	__raw_writel(0x1, S5P_SWRESET);
+}
+
+static void __init s5pv210_dt_init_machine(void)
+{
+	samsung_wdt_reset_of_init();
 }
 
 static void __init s5pv210_dt_init_late(void)
@@ -69,5 +78,6 @@ DT_MACHINE_START(S5PV210_DT, "Samsung S5PC110/S5PV210-based board")
 	.dt_compat = s5pv210_dt_compat,
 	.map_io = s5pv210_dt_map_io,
 	.restart = s5pv210_dt_restart,
+	.init_machine = s5pv210_dt_init_machine,
 	.init_late = s5pv210_dt_init_late,
 MACHINE_END

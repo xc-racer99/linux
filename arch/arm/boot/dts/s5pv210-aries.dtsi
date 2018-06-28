@@ -285,6 +285,13 @@
 			<0xe010c204 0x20>;
 		#power-domain-cells = <1>;
 	};
+
+	poweroff: syscon-poweroff {
+		compatible = "syscon-poweroff";
+		regmap = <&pmu_syscon>;
+		offset = <0x681c>; /* PS_HOLD_CONTROL */
+		value = <0x5200>;
+	};
 };
 
 &xusbxti {

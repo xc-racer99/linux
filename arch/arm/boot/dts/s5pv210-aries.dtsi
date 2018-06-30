@@ -319,6 +319,57 @@
 		pinctrl-0 = <&pwm1_out>;
 	};
 
+	i2c_audio: i2c-gpio-3 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&mp05 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&mp05 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		wm8994: wm8994@1a {
+			compatible = "wlf,wm8994";
+			reg = <0x1a>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			DBVDD-supply = <&buck3_reg>;
+			DCVDD-supply = <&buck3_reg>;
+			AVDD1-supply = <&buck3_reg>;
+			AVDD2-supply = <&buck3_reg>;
+			CPVDD-supply = <&buck3_reg>;
+			SPKVDD1-supply = <&buck3_reg>;
+			SPKVDD2-supply = <&buck3_reg>;
+
+			wlf,gpio-cfg = /bits/ 32 <0xA101
+					0x8100
+					0x8100 /* 0x0100 on i9000 */
+					0x8100 /* 0x0100 on i9000 */
+					0x8100
+					0xA101
+					0x0100
+					0x8100
+					0xA101
+					0xA101
+					0xA101>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&audio_pwr>;
+		};
+	};
+
+	sound {
+		compatible = "samsung,aries-wm8994";
+
+		samsung,i2s-controller = <&i2s0>;
+		samsung,audio-codec = <&wm8994>;
+		samsung,jack-det-gpios = <&gph0 6 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&jack_det>;
+	};
+
 	poweroff: syscon-poweroff {
 		compatible = "syscon-poweroff";
 		regmap = <&pmu_syscon>;
@@ -379,6 +430,10 @@
 	};
 };
 
+&i2s0 {
+	status = "okay";
+};
+
 &pinctrl0 {
 	wlan_bt_en: wlan-bt-en {
 		samsung,pins = "gpb-5";
@@ -418,6 +473,19 @@
 		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_UP>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	audio_pwr: audio-pwr {
+		samsung,pins = "gpf3-4";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-val = <1>;
+	};
+
+	jack_det: jack-det {
+		samsung,pins = "gph0-6";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 	};
 };
 

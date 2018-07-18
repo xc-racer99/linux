@@ -17,7 +17,7 @@
 		 * Let's hardocde bootargs for now, till u-boot port is finished,
 		 * with which it should be easier.
 		 */
-		bootargs = "root=/dev/mmcblk1p1 rw rootwait ignore_loglevel earlyprintk";
+		bootargs = "root=/dev/mmcblk1p1 rw rootwait ignore_loglevel earlyprintk clk_ignore_unused";
 	};
 
 	gpio-keys {

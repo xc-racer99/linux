@@ -69,9 +69,8 @@ static int s5pv210_audss_clk_probe(struct platform_device *pdev)
 	struct resource *res;
 	const char *mout_audss_p[2];
 	const char *mout_i2s_p[3];
-	const char *hclk_p;
 	struct clk_hw **clk_table;
-	struct clk *hclk, *pll_ref, *pll_in, *cdclk, *sclk_audio;
+	struct clk *pll_ref, *pll_in, *cdclk, *sclk_audio;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	reg_base = devm_ioremap_resource(&pdev->dev, res);
@@ -89,12 +88,6 @@ static int s5pv210_audss_clk_probe(struct platform_device *pdev)
 
 	clk_data->num = AUDSS_MAX_CLKS;
 	clk_table = clk_data->hws;
-
-	hclk = devm_clk_get(&pdev->dev, "hclk");
-	if (IS_ERR(hclk)) {
-		dev_err(&pdev->dev, "failed to get hclk clock\n");
-		return PTR_ERR(hclk);
-	}
 
 	pll_in = devm_clk_get(&pdev->dev, "fout_epll");
 	if (IS_ERR(pll_in)) {
@@ -144,25 +137,23 @@ static int s5pv210_audss_clk_probe(struct platform_device *pdev)
 				"dout_i2s_audss", CLK_SET_RATE_PARENT,
 				reg_base + ASS_CLK_GATE, 6, 0, &lock);
 
-	hclk_p = __clk_get_name(hclk);
-
 	clk_table[CLK_HCLK_I2S] = clk_hw_register_gate(NULL, "hclk_i2s_audss",
-				hclk_p, CLK_IGNORE_UNUSED,
+				"dout_aud_bus", CLK_IGNORE_UNUSED,
 				reg_base + ASS_CLK_GATE, 5, 0, &lock);
 	clk_table[CLK_HCLK_UART] = clk_hw_register_gate(NULL, "hclk_uart_audss",
-				hclk_p, CLK_IGNORE_UNUSED,
+				"dout_aud_bus", CLK_IGNORE_UNUSED,
 				reg_base + ASS_CLK_GATE, 4, 0, &lock);
 	clk_table[CLK_HCLK_HWA] = clk_hw_register_gate(NULL, "hclk_hwa_audss",
-				hclk_p, CLK_IGNORE_UNUSED,
+				"dout_aud_bus", CLK_IGNORE_UNUSED,
 				reg_base + ASS_CLK_GATE, 3, 0, &lock);
 	clk_table[CLK_HCLK_DMA] = clk_hw_register_gate(NULL, "hclk_dma_audss",
-				hclk_p, CLK_IGNORE_UNUSED,
+				"dout_aud_bus", CLK_IGNORE_UNUSED,
 				reg_base + ASS_CLK_GATE, 2, 0, &lock);
 	clk_table[CLK_HCLK_BUF] = clk_hw_register_gate(NULL, "hclk_buf_audss",
-				hclk_p, CLK_IGNORE_UNUSED,
+				"dout_aud_bus", CLK_IGNORE_UNUSED,
 				reg_base + ASS_CLK_GATE, 1, 0, &lock);
 	clk_table[CLK_HCLK_RP] = clk_hw_register_gate(NULL, "hclk_rp_audss",
-				hclk_p, CLK_IGNORE_UNUSED,
+				"dout_aud_bus", CLK_IGNORE_UNUSED,
 				reg_base + ASS_CLK_GATE, 0, 0, &lock);
 
 	for (i = 0; i < clk_data->num; i++) {

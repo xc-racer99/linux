@@ -23,7 +23,8 @@
 #include "../codecs/wm8994.h"
 #include "i2s.h"
 
-#define ARIES_WM8994_FREQ 24000000
+//#define ARIES_WM8994_FREQ 24000000
+#define ARIES_WM8994_FREQ   67738000
 
 static struct snd_soc_card aries;
 
@@ -48,6 +49,11 @@ static struct snd_soc_jack_gpio jack_gpio = {
 		.report = SND_JACK_HEADSET | SND_JACK_MECHANICAL |
 			SND_JACK_AVOUT,
 		.debounce_time = 200,
+};
+
+static struct clk_bulk_data clks[] = {
+	{ .id = "mout_audio0" },
+	{ .id = "hclk_rp" },
 };
 
 struct aries_wm8994_data {
@@ -132,6 +138,7 @@ static int aries_hifi_hw_params(struct snd_pcm_substream *substream,
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int pll_out;
 	int ret;
 
@@ -143,11 +150,13 @@ static int aries_hifi_hw_params(struct snd_pcm_substream *substream,
 	else
 		pll_out = params_rate(params) * 256;
 
+#if 0
 	/* select the AP sysclk */
 	ret = snd_soc_dai_set_sysclk(cpu_dai, SAMSUNG_I2S_CDCLK,
 				     0, SND_SOC_CLOCK_IN);
 	if (ret < 0)
 		return ret;
+#endif
 
 	ret = snd_soc_dai_set_sysclk(cpu_dai, SAMSUNG_I2S_OPCLK,
 				     0, SAMSUNG_I2S_OPCLK_PCLK);
@@ -300,6 +309,20 @@ static int aries_audio_probe(struct platform_device *pdev)
 						&voice_dai, 1);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register voice dai:%d\n", ret);
+		goto err;
+	}
+
+	ret = clk_bulk_get(&pdev->dev, ARRAY_SIZE(clks), clks);
+
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get clocks:%d\n", ret);
+		goto err;
+	}
+
+	ret = clk_bulk_prepare_enable(ARRAY_SIZE(clks), clks);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to enable clocks:%d\n", ret);
+		goto err;
 	}
 
 	platform_set_drvdata(pdev, board);
@@ -309,12 +332,13 @@ static int aries_audio_probe(struct platform_device *pdev)
 	if (ret)
 		dev_err(&pdev->dev, "snd_soc_register_card() failed:%d\n", ret);
 
+err:
 	return ret;
 }
 
 static int aries_audio_remove(struct platform_device *pdev)
 {
-	struct aries_wm8994_data *board = platform_get_drvdata(pdev);
+	clk_bulk_disable_unprepare(ARRAY_SIZE(clks), clks);
 
 	return 0;
 }

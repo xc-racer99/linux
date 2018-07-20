@@ -362,9 +362,28 @@
 	sound {
 		compatible = "samsung,aries-wm8994";
 
+		clocks = <&clocks MOUT_AUDIO0>, <&clk_audss CLK_HCLK_RP>;
+		clock-names = "mout_audio0", "hclk_rp";
+
 		samsung,i2s-controller = <&i2s0>;
 		samsung,audio-codec = <&wm8994>;
 		samsung,jack-det-gpios = <&gph0 6 GPIO_ACTIVE_HIGH>;
+
+		assigned-clocks = <&clocks MOUT_CLKOUT>,
+				<&clocks MOUT_EPLL>,
+				<&clocks MOUT_AUDIO0>,
+				<&clk_audss CLK_MOUT_AUDSS>,
+				<&clk_audss CLK_MOUT_I2S_A>;
+		assigned-clock-parents = <&xusbxti>,
+				<&clocks FOUT_EPLL>,
+				<&clocks FOUT_EPLL>,
+				<&clocks FOUT_EPLL>,
+				<&clk_audss CLK_MOUT_AUDSS>;
+		assigned-clock-rates = <24000000>,
+				<67738000>,
+				<67738000>,
+				<67738000>,
+				<67738000>;
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&jack_det>;
@@ -376,6 +395,15 @@
 		offset = <0x681c>; /* PS_HOLD_CONTROL */
 		value = <0x5200>;
 	};
+};
+
+&clk_audss {
+	clock-names = "hclk", "xxti",
+			"fout_epll",
+			"sclk_audio0";
+	clocks = <&clocks DOUT_HCLKP>, <&xusbxti>,
+			<&clocks FOUT_EPLL>,
+			<&clocks SCLK_AUDIO0>;
 };
 
 &fimd {
@@ -431,6 +459,13 @@
 };
 
 &i2s0 {
+	clock-names = "iis",
+			"i2s_opclk0",
+			"i2s_opclk1";
+	clocks = <&clk_audss CLK_HCLK_I2S>,
+			<&clk_audss CLK_HCLK_I2S>,
+			<&clk_audss CLK_DOUT_AUD_BUS>;
+
 	status = "okay";
 };
 

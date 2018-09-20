@@ -841,6 +841,16 @@
 	memory-region = <&mfc_left>, <&mfc_right>;
 };
 
+&onenand {
+	status = "okay";
+
+	onenand@b0000000 {
+		reg = <0xb0000000 0x20000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
+};
+
 &pinctrl0 {
 	s5ka3dfx_pwr: s5ka3dfx-pwr {
 		samsung,pins = "gpb-0", "gpb-2";

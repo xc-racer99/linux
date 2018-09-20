@@ -400,6 +400,10 @@
 	memory-region = <&mfc_left>, <&mfc_right>;
 };
 
+&onenand {
+	status = "okay";
+};
+
 &pinctrl0 {
 	wlan_bt_en: wlan-bt-en {
 		samsung,pins = "gpb-5";

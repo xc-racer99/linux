@@ -59,6 +59,10 @@
 		power-off-delay-us = <500>;
 	};
 
+	bt_sco_codec: bt-sco {
+		compatible = "linux,bt-sco";
+	};
+
 	i2c_pmic: i2c-gpio-0 {
 		compatible = "i2c-gpio";
 		sda-gpios = <&gpj4 0 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
@@ -354,6 +358,44 @@
 		};
 	};
 
+	i2c_sound: i2c-gpio-5 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&mp05 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&mp05 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		wm8994: wm8994@1a {
+			compatible = "wlf,wm8994";
+			reg = <0x1a>;
+
+			gpio-controller;
+			#gpio-cells = <2>;
+
+			clocks = <&clocks MOUT_CLKOUT>;
+			clock-names = "MCLK1";
+
+			AVDD2-supply = <&buck3_reg>;
+			CPVDD-supply = <&buck3_reg>;
+			DBVDD-supply = <&buck3_reg>;
+			SPKVDD1-supply = <&buck3_reg>;
+			SPKVDD2-supply = <&buck3_reg>;
+
+			wlf,gpio-cfg = <0xa101 0x8100 0x0100 0x0100 0x8100 0xa101
+					0x0100 0x8100 0x0100 0x0100 0x0100>;
+
+			wlf,ldo1ena = <&gpf3 4 GPIO_ACTIVE_HIGH>;
+
+			wlf,lineout1-se;
+			wlf,lineout2-se;
+
+			assigned-clocks = <&clocks MOUT_CLKOUT>;
+			assigned-clock-rates = <0>;
+			assigned-clock-parents = <&xusbxti>;
+		};
+	};
+
 	vibrator: pwm-vibrator {
 		compatible = "pwm-vibrator";
 		pwms = <&pwm 1 44642 0>;
@@ -369,6 +411,10 @@
 		offset = <0x681c>; /* PS_HOLD_CONTROL */
 		value = <0x5200>;
 	};
+};
+
+&adc {
+	status = "okay";
 };
 
 &fimd {
@@ -417,6 +463,10 @@
 		pinctrl-0 = <&ts_irq>;
 		reset-gpios = <&gpj1 3 GPIO_ACTIVE_HIGH>;
 	};
+};
+
+&i2s0 {
+	status = "okay";
 };
 
 &mfc {

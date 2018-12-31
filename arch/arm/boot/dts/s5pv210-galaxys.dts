@@ -231,6 +231,21 @@
 		};
 	};
 
+	onedram {
+		compatible = "samsung,intel-xmm6160";
+
+		interrupt-parent = <&gph1>;
+		interrupt-names = "active", "onedram";
+		interrupts = <7 IRQ_TYPE_EDGE_BOTH>, <3 IRQ_TYPE_LEVEL_LOW>;
+		reg = <0x35000000 0x01000000>;
+
+		pda_active-gpios = <&mp03 3 GPIO_ACTIVE_HIGH>;
+		cp_reset-gpios = <&gph3 7 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-0 = <&cp_rst &eint15 &onedram_int &pda_active>;
+		pinctrl-names = "default";
+	};
+
 	sound {
 		compatible = "samsung,aries-wm8994";
 
@@ -296,6 +311,14 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&sleep_cfg>;
 
+	cp_rst: cp-rst {
+		samsung,pins = "gph3-7";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+		samsung,pin-val = <0>;
+	};
+
 	headset_det: headset-det {
 		samsung,pins = "gph0-6", "gph3-6";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
@@ -335,11 +358,24 @@
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};
 
-
 	micbias_reg_ena: micbias-reg-ena {
 		samsung,pins = "gpj4-2";
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	onedram_int: onedram-int {
+		samsung,pins = "gph1-3";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_UP>;
+	};
+
+	pda_active: pda-active {
+		samsung,pins = "mp03-3";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+		samsung,pin-val = <1>;
 	};
 
 	sleep_cfg: sleep-cfg {
@@ -591,4 +627,8 @@
 	assigned-clocks = <&clocks MOUT_MMC0>, <&clocks SCLK_MMC0>;
 	assigned-clock-rates = <0>, <52000000>;
 	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
+&uart3 {
+	status = "okay";
 };

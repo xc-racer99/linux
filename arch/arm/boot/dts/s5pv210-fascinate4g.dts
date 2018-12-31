@@ -39,9 +39,64 @@
 	};
 };
 
+&modem {
+	compatible = "samsung,ste-m5730";
+
+	phone_on-gpios = <&gpj1 0 GPIO_ACTIVE_HIGH>;
+	phone_active-gpios = <&gph1 7 GPIO_ACTIVE_HIGH>;
+	pda_active-gpios = <&mp03 3 GPIO_ACTIVE_HIGH>;
+	cp_reset-gpios = <&gph1 0 GPIO_ACTIVE_HIGH>;
+	resout-gpios = <&gph1 4 GPIO_ACTIVE_HIGH>;
+	cp_pwr_rst-gpios = <&gph1 1 GPIO_ACTIVE_HIGH>;
+
+	cp_rtc-supply = <&ldo6_reg>;
+	cp_32khz-supply = <&cp32khz_reg>;
+
+	pinctrl-0 = <&phone_on &eint15 &pda_active &cp_rst &resout &cp_pwr_rst>;
+	pinctrl-names = "default";
+};
+
 &pinctrl0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&sleep_cfg>;
+
+	cp_rst: cp-rst {
+		samsung,pins = "gph1-0";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+		samsung,pin-val = <0>;
+	};
+
+	cp_pwr_rst: cp-pwr-rst {
+		samsung,pins = "gph1-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	resout: resout {
+		samsung,pins = "gph1-4";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	phone_on: phone-on {
+		samsung,pins = "gpj1-0";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+		samsung,pin-val = <0>;
+	};
+
+	pda_active: pda-active {
+		samsung,pins = "mp03-3";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+		samsung,pin-val = <1>;
+	};
 
 	sleep_cfg: sleep-cfg {
 		PIN_SLP(gpa0-0, PREV, NONE);
@@ -279,4 +334,8 @@
 		PIN_SLP(mp07-6, INPUT, DOWN);
 		PIN_SLP(mp07-7, INPUT, DOWN);
 	};
+};
+
+&uart3 {
+	status = "okay";
 };

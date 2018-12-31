@@ -403,6 +403,17 @@
 		};
 	};
 
+	modem: modem {
+		compatible = "samsung,onedram";
+
+		interrupt-parent = <&gph1>;
+		interrupts = <3 IRQ_TYPE_LEVEL_LOW>;
+		reg = <0x35000000 0x01000000>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&onedram_irq>;
+	};
+
 	vibrator: pwm-vibrator {
 		compatible = "pwm-vibrator";
 		pwms = <&pwm 1 44642 0>;
@@ -542,6 +553,13 @@
 		samsung,pins = "gph0-7";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	onedram_irq: onedram_irq {
+		samsung,pins = "gph1-3";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_UP>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};
 

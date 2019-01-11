@@ -171,6 +171,11 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&pmic_dvs_pins &pmic_irq>;
 
+			charger {
+				maxim,end-of-charge-percentage = <20>;
+				maxim,charge-timeout = <7>;
+			};
+
 			regulators {
 				ldo2_reg: LDO2 {
 					regulator-name = "VALIVE_1.2V";

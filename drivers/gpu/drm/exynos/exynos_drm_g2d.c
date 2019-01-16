@@ -37,10 +37,12 @@
 #define G2D_SOFT_RESET			0x0000
 #define G2D_INTEN			0x0004
 #define G2D_INTC_PEND			0x000C
+// Add being
 #define G2D_DMA_SFR_BASE_ADDR		0x0080
 #define G2D_DMA_COMMAND			0x0084
 #define G2D_DMA_STATUS			0x008C
 #define G2D_DMA_HOLD_CMD		0x0090
+// Add end
 
 /* command registers */
 #define G2D_BITBLT_START		0x0100
@@ -51,13 +53,17 @@
 #define G2D_SRC_COLOR_MODE		0x030C
 #define G2D_SRC_LEFT_TOP		0x0310
 #define G2D_SRC_RIGHT_BOTTOM		0x0314
+// Add begin
 #define G2D_SRC_PLANE2_BASE_ADDR	0x0318
+// Add end
 #define G2D_DST_BASE_ADDR		0x0404
 #define G2D_DST_STRIDE			0x0408
 #define G2D_DST_COLOR_MODE		0x040C
 #define G2D_DST_LEFT_TOP		0x0410
 #define G2D_DST_RIGHT_BOTTOM		0x0414
+// Add begin
 #define G2D_DST_PLANE2_BASE_ADDR	0x0418
+// Add end
 #define G2D_PAT_BASE_ADDR		0x0500
 #define G2D_MSK_BASE_ADDR		0x0520
 

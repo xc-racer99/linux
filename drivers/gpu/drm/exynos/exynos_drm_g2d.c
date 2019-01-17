@@ -19,15 +19,13 @@
 #include <linux/workqueue.h>
 #include <linux/dma-mapping.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 
 #include <drm/drmP.h>
 #include <drm/exynos_drm.h>
 #include "exynos_drm_drv.h"
 #include "exynos_drm_g2d.h"
 #include "exynos_drm_gem.h"
-
-#define G2D_HW_MAJOR_VER		4
-#define G2D_HW_MINOR_VER		1
 
 /* vaild register range set from user: 0x0104 ~ 0x0880 */
 #define G2D_VALID_START			0x0104
@@ -156,6 +154,11 @@ enum g2d_flag_bits {
 	G2D_BIT_ENGINE_BUSY,
 };
 
+struct g2d_variant {
+	u32		rev_major;
+	u32		rev_minor;
+};
+
 /* cmdlist data structure */
 struct g2d_cmdlist {
 	u32		head;
@@ -262,6 +265,8 @@ struct g2d_data {
 
 	unsigned long			current_pool;
 	unsigned long			max_pool;
+
+	struct g2d_variant		*variant;
 };
 
 static inline void g2d_hw_reset(struct g2d_data *g2d)
@@ -1125,10 +1130,12 @@ err:
 int exynos_g2d_get_ver_ioctl(struct drm_device *drm_dev, void *data,
 			     struct drm_file *file)
 {
+	struct exynos_drm_private *priv = drm_dev->dev_private;
+	struct g2d_data *g2d = dev_get_drvdata(priv->g2d_dev);
 	struct drm_exynos_g2d_get_ver *ver = data;
 
-	ver->major = G2D_HW_MAJOR_VER;
-	ver->minor = G2D_HW_MINOR_VER;
+	ver->major = g2d->variant->rev_major;
+	ver->minor = g2d->variant->rev_minor;
 
 	return 0;
 }
@@ -1419,7 +1426,7 @@ static int g2d_bind(struct device *dev, struct device *master, void *data)
 	priv->g2d_dev = dev;
 
 	dev_info(dev, "The Exynos G2D (ver %d.%d) successfully registered.\n",
-			G2D_HW_MAJOR_VER, G2D_HW_MINOR_VER);
+			dev->variant->rev_major, dev->variant->rev_minor);
 	return 0;
 }
 
@@ -1453,6 +1460,8 @@ static int g2d_probe(struct platform_device *pdev)
 	g2d = devm_kzalloc(dev, sizeof(*g2d), GFP_KERNEL);
 	if (!g2d)
 		return -ENOMEM;
+
+	g2d->variant = (struct g2d_variant *) of_device_get_match_data(dev);
 
 	g2d->runqueue_slab = kmem_cache_create("g2d_runqueue_slab",
 			sizeof(struct g2d_runqueue_node), 0, 0, NULL);
@@ -1605,9 +1614,27 @@ static const struct dev_pm_ops g2d_pm_ops = {
 	SET_RUNTIME_PM_OPS(g2d_runtime_suspend, g2d_runtime_resume, NULL)
 };
 
+static const struct g2d_variant g2d_drvdata_v3x = {
+	.rev_minor = 0,
+	.rev_major = 3,
+};
+
+static const struct g2d_variant g2d_drvdata_v4x = {
+	.rev_minor = 1,
+	.rev_major = 2,
+};
+
 static const struct of_device_id exynos_g2d_match[] = {
-	{ .compatible = "samsung,exynos5250-g2d" },
-	{ .compatible = "samsung,exynos4212-g2d" },
+	{
+		.compatible = "samsung,exynos5250-g2d",
+		.data = &g2d_drvdata_v4x,
+	}, {
+		.compatible = "samsung,exynos4212-g2d",
+		.data = &g2d_drvdata_v4x,
+	}, {
+		.compatible = "samsung,s5pv210-g2d",
+		.data = &g2d_drvdata_v3x,
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, exynos_g2d_match);

@@ -13,6 +13,7 @@
 #include <linux/io.h>
 #include <linux/kernel.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
@@ -26,9 +27,6 @@
 #include "exynos_drm_g2d.h"
 #include "exynos_drm_gem.h"
 
-#define G2D_HW_MAJOR_VER		4
-#define G2D_HW_MINOR_VER		1
-
 /* vaild register range set from user: 0x0104 ~ 0x0880 */
 #define G2D_VALID_START			0x0104
 #define G2D_VALID_END			0x0880
@@ -37,6 +35,7 @@
 #define G2D_SOFT_RESET			0x0000
 #define G2D_INTEN			0x0004
 #define G2D_INTC_PEND			0x000C
+#define G2D_CACHECTL			0x0018 /* S5PV210 specific */
 #define G2D_DMA_SFR_BASE_ADDR		0x0080
 #define G2D_DMA_COMMAND			0x0084
 #define G2D_DMA_STATUS			0x008C
@@ -70,6 +69,11 @@
 #define G2D_INTEN_UCF			(1 << 2)
 #define G2D_INTEN_GCF			(1 << 1)
 #define G2D_INTEN_SCF			(1 << 0)
+
+/* G2D_CACHECTL, S5PV210 specific */
+#define G2D_CACHECTL_PATCACHE		(BIT(2))
+#define G2D_CACHECTL_SRCBUFFER		(BIT(1))
+#define G2D_CACHECTL_MASKBUFFER		(BIT(0))
 
 /* G2D_INTC_PEND */
 #define G2D_INTP_ACMD_FIN		(1 << 3)
@@ -148,6 +152,11 @@ enum g2d_flag_bits {
 	 * If set, indicates that the engine is currently busy.
 	 */
 	G2D_BIT_ENGINE_BUSY,
+};
+
+struct g2d_variant {
+	u32		rev_major;
+	u32		rev_minor;
 };
 
 /* cmdlist data structure */
@@ -253,9 +262,13 @@ struct g2d_data {
 	struct list_head		runqueue;
 	struct mutex			runqueue_mutex;
 	struct kmem_cache		*runqueue_slab;
+	struct g2d_cmdlist_node		*cur_cmdlist_node;
+	unsigned int			cmdlist_count;
 
 	unsigned long			current_pool;
 	unsigned long			max_pool;
+
+	struct g2d_variant		*variant;
 };
 
 static inline void g2d_hw_reset(struct g2d_data *g2d)
@@ -574,7 +587,10 @@ static enum g2d_reg_type g2d_get_reg_type(struct g2d_data *g2d, int reg_offset)
 		reg_type = REG_TYPE_SRC;
 		break;
 	case G2D_SRC_PLANE2_BASE_ADDR:
-		reg_type = REG_TYPE_SRC_PLANE2;
+		if (g2d->variant->rev_major == 3)
+			reg_type = REG_TYPE_NONE;
+		else
+			reg_type = REG_TYPE_SRC_PLANE2;
 		break;
 	case G2D_DST_BASE_ADDR:
 	case G2D_DST_STRIDE:
@@ -584,7 +600,10 @@ static enum g2d_reg_type g2d_get_reg_type(struct g2d_data *g2d, int reg_offset)
 		reg_type = REG_TYPE_DST;
 		break;
 	case G2D_DST_PLANE2_BASE_ADDR:
-		reg_type = REG_TYPE_DST_PLANE2;
+		if (g2d->variant->rev_major == 3)
+			reg_type = REG_TYPE_NONE;
+		else
+			reg_type = REG_TYPE_DST_PLANE2;
 		break;
 	case G2D_PAT_BASE_ADDR:
 		reg_type = REG_TYPE_PAT;
@@ -812,6 +831,35 @@ static void g2d_dma_start(struct g2d_data *g2d,
 	writel_relaxed(G2D_DMA_START, g2d->regs + G2D_DMA_COMMAND);
 }
 
+static void g2d_write_cur_cmdlist(struct g2d_data *g2d)
+{
+	struct g2d_cmdlist *cmdlist = g2d->cur_cmdlist_node->cmdlist;
+	int i;
+
+	/* v3 needs the contents of the commandlist written to regs */
+	for (i = 0; i < cmdlist->last; i += 2) {
+		dev_dbg(g2d->dev, "writing %lx to offset %lx",
+			cmdlist->data[i + 1], cmdlist->data[i]);
+		writel_relaxed(cmdlist->data[i + 1],
+			       g2d->regs + cmdlist->data[i]);
+	}
+}
+
+static void g2d_start_cmdlist(struct g2d_data *g2d,
+			  struct g2d_runqueue_node *runqueue_node)
+{
+	struct g2d_cmdlist_node *node =
+				list_first_entry(&runqueue_node->run_cmdlist,
+						struct g2d_cmdlist_node, list);
+
+	set_bit(G2D_BIT_ENGINE_BUSY, &g2d->flags);
+
+	g2d->cmdlist_count = 0;
+	g2d->cur_cmdlist_node = node;
+
+	g2d_write_cur_cmdlist(g2d);
+}
+
 static struct g2d_runqueue_node *g2d_get_runqueue_node(struct g2d_data *g2d)
 {
 	struct g2d_runqueue_node *runqueue_node;
@@ -898,7 +946,10 @@ static void g2d_runqueue_worker(struct work_struct *work)
 
 		if (g2d->runqueue_node) {
 			pm_runtime_get_sync(g2d->dev);
-			g2d_dma_start(g2d, g2d->runqueue_node);
+			if (g2d->variant->rev_major == 3)
+				g2d_start_cmdlist(g2d, g2d->runqueue_node);
+			else
+				g2d_dma_start(g2d, g2d->runqueue_node);
 		}
 	}
 
@@ -929,32 +980,58 @@ static void g2d_finish_event(struct g2d_data *g2d, u32 cmdlist_no)
 static irqreturn_t g2d_irq_handler(int irq, void *dev_id)
 {
 	struct g2d_data *g2d = dev_id;
+	struct g2d_cmdlist_node *node;
 	u32 pending;
 
 	pending = readl_relaxed(g2d->regs + G2D_INTC_PEND);
 	if (pending)
 		writel_relaxed(pending, g2d->regs + G2D_INTC_PEND);
 
-	if (pending & G2D_INTP_GCMD_FIN) {
-		u32 cmdlist_no = readl_relaxed(g2d->regs + G2D_DMA_STATUS);
+	if (g2d->variant->rev_major == 3) {
+		if (!pending & G2D_INTP_SCMD_FIN)
+			goto out;
 
-		cmdlist_no = (cmdlist_no & G2D_DMA_LIST_DONE_COUNT) >>
-						G2D_DMA_LIST_DONE_COUNT_OFFSET;
+		if (g2d->cur_cmdlist_node->event) {
+			g2d_finish_event(g2d, g2d->cmdlist_count);
+			g2d->cmdlist_count = 0;
+		} else {
+			g2d->cmdlist_count++;
+		}
 
-		g2d_finish_event(g2d, cmdlist_no);
+		node = list_next_entry(g2d->cur_cmdlist_node, list);
 
-		writel_relaxed(0, g2d->regs + G2D_DMA_HOLD_CMD);
-		if (!(pending & G2D_INTP_ACMD_FIN)) {
-			writel_relaxed(G2D_DMA_CONTINUE,
-					g2d->regs + G2D_DMA_COMMAND);
+		if (&node->list == &g2d->runqueue_node->run_cmdlist) {
+			/* All cmdlists sent */
+			clear_bit(G2D_BIT_ENGINE_BUSY, &g2d->flags);
+			queue_work(g2d->g2d_workq, &g2d->runqueue_work);
+		} else {
+			/* Send next cmdlist to HW */
+			g2d->cur_cmdlist_node = node;
+			g2d_write_cur_cmdlist(g2d);
+		}
+	} else {
+		if (pending & G2D_INTP_GCMD_FIN) {
+			u32 cmdlist_no = readl_relaxed(g2d->regs + G2D_DMA_STATUS);
+
+			cmdlist_no = (cmdlist_no & G2D_DMA_LIST_DONE_COUNT) >>
+							G2D_DMA_LIST_DONE_COUNT_OFFSET;
+
+			g2d_finish_event(g2d, cmdlist_no);
+
+			writel_relaxed(0, g2d->regs + G2D_DMA_HOLD_CMD);
+			if (!(pending & G2D_INTP_ACMD_FIN)) {
+				writel_relaxed(G2D_DMA_CONTINUE,
+						g2d->regs + G2D_DMA_COMMAND);
+			}
+		}
+
+		if (pending & G2D_INTP_ACMD_FIN) {
+			clear_bit(G2D_BIT_ENGINE_BUSY, &g2d->flags);
+			queue_work(g2d->g2d_workq, &g2d->runqueue_work);
 		}
 	}
 
-	if (pending & G2D_INTP_ACMD_FIN) {
-		clear_bit(G2D_BIT_ENGINE_BUSY, &g2d->flags);
-		queue_work(g2d->g2d_workq, &g2d->runqueue_work);
-	}
-
+out:
 	return IRQ_HANDLED;
 }
 
@@ -1040,10 +1117,13 @@ static int g2d_check_reg_offset(struct g2d_data *g2d,
 			goto err;
 
 		switch (reg_offset) {
-		case G2D_SRC_BASE_ADDR:
 		case G2D_SRC_PLANE2_BASE_ADDR:
-		case G2D_DST_BASE_ADDR:
 		case G2D_DST_PLANE2_BASE_ADDR:
+			if (g2d->variant->rev_major == 3)
+				goto err;
+			/* fall through */
+		case G2D_SRC_BASE_ADDR:
+		case G2D_DST_BASE_ADDR:
 		case G2D_PAT_BASE_ADDR:
 		case G2D_MSK_BASE_ADDR:
 			if (!for_addr)
@@ -1124,10 +1204,12 @@ err:
 int exynos_g2d_get_ver_ioctl(struct drm_device *drm_dev, void *data,
 			     struct drm_file *file)
 {
+	struct exynos_drm_private *priv = drm_dev->dev_private;
+	struct g2d_data *g2d = dev_get_drvdata(priv->g2d_dev);
 	struct drm_exynos_g2d_get_ver *ver = data;
 
-	ver->major = G2D_HW_MAJOR_VER;
-	ver->minor = G2D_HW_MINOR_VER;
+	ver->major = g2d->variant->rev_major;
+	ver->minor = g2d->variant->rev_minor;
 
 	return 0;
 }
@@ -1199,23 +1281,38 @@ int exynos_g2d_set_cmdlist_ioctl(struct drm_device *drm_dev, void *data,
 	cmdlist->data[cmdlist->last++] = G2D_SRC_BASE_ADDR;
 	cmdlist->data[cmdlist->last++] = 0;
 
-	/*
-	 * 'LIST_HOLD' command should be set to the DMA_HOLD_CMD_REG
-	 * and GCF bit should be set to INTEN register if user wants
-	 * G2D interrupt event once current command list execution is
-	 * finished.
-	 * Otherwise only ACF bit should be set to INTEN register so
-	 * that one interrupt is occurred after all command lists
-	 * have been completed.
-	 */
-	if (node->event) {
+	if (g2d->variant->rev_major == 3) {
+		/*
+		 * For v3, we need to trigger the interrupt all
+		 * the time at the end of each set of commands
+		 */
 		cmdlist->data[cmdlist->last++] = G2D_INTEN;
-		cmdlist->data[cmdlist->last++] = G2D_INTEN_ACF | G2D_INTEN_GCF;
-		cmdlist->data[cmdlist->last++] = G2D_DMA_HOLD_CMD;
-		cmdlist->data[cmdlist->last++] = G2D_LIST_HOLD;
+		cmdlist->data[cmdlist->last++] = G2D_INTEN_SCF;
+
+		/* We also need to clear the cache */
+		cmdlist->data[cmdlist->last++] = G2D_CACHECTL;
+		cmdlist->data[cmdlist->last++] = G2D_CACHECTL_PATCACHE |
+						 G2D_CACHECTL_SRCBUFFER |
+						 G2D_CACHECTL_MASKBUFFER;
 	} else {
-		cmdlist->data[cmdlist->last++] = G2D_INTEN;
-		cmdlist->data[cmdlist->last++] = G2D_INTEN_ACF;
+		/*
+		 * 'LIST_HOLD' command should be set to the DMA_HOLD_CMD_REG
+		 * and GCF bit should be set to INTEN register if user wants
+		 * G2D interrupt event once current command list execution is
+		 * finished.
+		 * Otherwise only ACF bit should be set to INTEN register so
+		 * that one interrupt is occurred after all command lists
+		 * have been completed.
+		 */
+		if (node->event) {
+			cmdlist->data[cmdlist->last++] = G2D_INTEN;
+			cmdlist->data[cmdlist->last++] = G2D_INTEN_ACF | G2D_INTEN_GCF;
+			cmdlist->data[cmdlist->last++] = G2D_DMA_HOLD_CMD;
+			cmdlist->data[cmdlist->last++] = G2D_LIST_HOLD;
+		} else {
+			cmdlist->data[cmdlist->last++] = G2D_INTEN;
+			cmdlist->data[cmdlist->last++] = G2D_INTEN_ACF;
+		}
 	}
 
 	/*
@@ -1418,7 +1515,7 @@ static int g2d_bind(struct device *dev, struct device *master, void *data)
 	priv->g2d_dev = dev;
 
 	dev_info(dev, "The Exynos G2D (ver %d.%d) successfully registered.\n",
-			G2D_HW_MAJOR_VER, G2D_HW_MINOR_VER);
+			g2d->variant->rev_major, g2d->variant->rev_minor);
 	return 0;
 }
 
@@ -1452,6 +1549,8 @@ static int g2d_probe(struct platform_device *pdev)
 	g2d = devm_kzalloc(dev, sizeof(*g2d), GFP_KERNEL);
 	if (!g2d)
 		return -ENOMEM;
+
+	g2d->variant = (struct g2d_variant *) of_device_get_match_data(dev);
 
 	g2d->runqueue_slab = kmem_cache_create("g2d_runqueue_slab",
 			sizeof(struct g2d_runqueue_node), 0, 0, NULL);
@@ -1604,9 +1703,27 @@ static const struct dev_pm_ops g2d_pm_ops = {
 	SET_RUNTIME_PM_OPS(g2d_runtime_suspend, g2d_runtime_resume, NULL)
 };
 
+static const struct g2d_variant g2d_drvdata_v3x = {
+	.rev_minor = 0,
+	.rev_major = 3,
+};
+
+static const struct g2d_variant g2d_drvdata_v4x = {
+	.rev_minor = 1,
+	.rev_major = 4,
+};
+
 static const struct of_device_id exynos_g2d_match[] = {
-	{ .compatible = "samsung,exynos5250-g2d" },
-	{ .compatible = "samsung,exynos4212-g2d" },
+	{
+		.compatible = "samsung,exynos5250-g2d",
+		.data = &g2d_drvdata_v4x,
+	}, {
+		.compatible = "samsung,exynos4212-g2d",
+		.data = &g2d_drvdata_v4x,
+	}, {
+		.compatible = "samsung,s5pv210-g2d",
+		.data = &g2d_drvdata_v3x,
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, exynos_g2d_match);

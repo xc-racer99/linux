@@ -301,9 +301,6 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 
 	dev_info(&client->dev, "dev1: 0x%x, dev2: 0x%x\n", val1, val2);
 
-	if (usbsw->mansw && (val1 & DEV_T1_USB_MASK || val2 & DEV_T2_USB_MASK))
-		fsa9480_write_reg(client, FSA9480_REG_MANSW1, usbsw->mansw);
-
 	/* handle detached cables first */
 	fsa9480_handle_change(usbsw, usbsw->dev & ~val, false);
 

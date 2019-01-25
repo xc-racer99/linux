@@ -114,8 +114,14 @@ static int s5pv210_suspend_enter(suspend_state_t state)
 	}
 
 	s3c_pm_save_uarts();
+
+	S3C_PMDBG("%s: running s5pv210_pm_prepare\n", __func__);
 	s5pv210_pm_prepare();
+
+	S3C_PMDBG("%s: running flush_cache_all\n", __func__);
 	flush_cache_all();
+
+	S3C_PMDBG("%s: running s3c_pm_check_store\n", __func__);
 	s3c_pm_check_store();
 
 	ret = cpu_suspend(0, s5pv210_cpu_suspend);

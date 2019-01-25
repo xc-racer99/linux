@@ -72,6 +72,8 @@
 			interrupt-parent = <&gph0>;
 			interrupts = <7 IRQ_TYPE_EDGE_FALLING>;
 
+			wakeup-source;
+
 			max8998,pmic-buck1-default-dvs-idx = <1>;
 			max8998,pmic-buck1-dvs-gpios = <&gph0 3 GPIO_ACTIVE_HIGH>,
 							<&gph0 4 GPIO_ACTIVE_HIGH>;

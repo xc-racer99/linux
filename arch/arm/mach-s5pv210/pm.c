@@ -89,6 +89,39 @@ static void s5pv210_pm_prepare(void)
 	__raw_writel(tmp, S5P_OTHERS);
 
 	s3c_pm_do_save(s5pv210_core_save, ARRAY_SIZE(s5pv210_core_save));
+
+	pr_err("S5P_PWR_CFG %x", readl(S5P_PWR_CFG));
+	pr_err("S5P_EINT_WAKEUP_MASK %x", readl(S5P_EINT_WAKEUP_MASK));
+	pr_err("S5P_WAKEUP_MASK %x", readl(S5P_WAKEUP_MASK));
+	pr_err("S5P_PWR_MODE %x", readl(S5P_PWR_MODE));
+	pr_err("S5P_NORMAL_CFG %x", readl(S5P_NORMAL_CFG));
+	pr_err("S5P_IDLE_CFG %x", readl(S5P_IDLE_CFG));
+	pr_err("S5P_STOP_CFG %x", readl(S5P_STOP_CFG));
+	pr_err("S5P_STOP_MEM_CFG %x", readl(S5P_STOP_MEM_CFG));
+
+	pr_err("SLEEP_CFG %x", readl(S3C_VA_SYS+0xC040));
+
+	pr_err("OSC_FREQ %x", readl(S3C_VA_SYS+0xC100));
+	pr_err("OSC_STABLE %x", readl(S3C_VA_SYS+0xC104));
+	pr_err("PWR_STABLE %x", readl(S3C_VA_SYS+0xC108));
+
+	pr_err("MTC_STABLE %x", readl(S3C_VA_SYS+0xC110));
+	pr_err("CLAMP_STABLE %x", readl(S3C_VA_SYS+0xC114));
+
+	pr_err("WAKEUP_STAT %x", readl(S3C_VA_SYS+0xC200));
+	pr_err("BLK_PWR_STAT %x", readl(S3C_VA_SYS+0xC204));
+
+	pr_err("OTHERS %x", readl(S3C_VA_SYS+0xE000));
+
+	pr_err("OM_STAT %x", readl(S3C_VA_SYS+0xE100));
+
+	pr_err("HDMI_CONTROL %x", readl(S3C_VA_SYS+0xE804));
+
+	pr_err("USB_PHY_CONTROL %x", readl(S3C_VA_SYS+0xE80C));
+	pr_err("DAC_CONTROL %x", readl(S3C_VA_SYS+0xE810));
+	pr_err("MIPI_DPHY_CONTROL %x", readl(S3C_VA_SYS+0xE814));
+	pr_err("ADC_CONTROL %x", readl(S3C_VA_SYS+0xE818));
+	pr_err("PS_HOLD_CONTROL %x", readl(S3C_VA_SYS+0xE81C));
 }
 
 /*

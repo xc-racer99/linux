@@ -17,6 +17,8 @@
 #include <linux/of_address.h>
 #include <linux/slab.h>
 #include <linux/err.h>
+#include <linux/regmap.h>
+#include <linux/mfd/syscon.h>
 #include <linux/soc/samsung/exynos-regs-pmu.h>
 
 #include "pinctrl-samsung.h"
@@ -42,13 +44,11 @@ static const struct samsung_pin_bank_type bank_type_alive = {
 
 static void s5pv210_retention_disable(struct samsung_pinctrl_drv_data *drvdata)
 {
-	void __iomem *clk_base = (void __iomem *)drvdata->retention_ctrl->priv;
-	u32 tmp;
-
-	tmp = __raw_readl(clk_base + S5P_OTHERS);
-	tmp |= (S5P_OTHERS_RET_IO | S5P_OTHERS_RET_CF | S5P_OTHERS_RET_MMC |
+	struct regmap *regs = drvdata->retention_ctrl->priv;
+	int tmp = (S5P_OTHERS_RET_IO | S5P_OTHERS_RET_CF | S5P_OTHERS_RET_MMC |
 		S5P_OTHERS_RET_UART);
-	__raw_writel(tmp, clk_base + S5P_OTHERS);
+
+	regmap_update_bits(regs, S5P_OTHERS, tmp, tmp);
 }
 
 static struct samsung_retention_ctrl *
@@ -57,7 +57,7 @@ s5pv210_retention_init(struct samsung_pinctrl_drv_data *drvdata,
 {
 	struct samsung_retention_ctrl *ctrl;
 	struct device_node *np;
-	void __iomem *clk_base;
+	struct regmap *regs;
 
 	ctrl = devm_kzalloc(drvdata->dev, sizeof(*ctrl), GFP_KERNEL);
 	if (!ctrl)
@@ -70,13 +70,11 @@ s5pv210_retention_init(struct samsung_pinctrl_drv_data *drvdata,
 		return ERR_PTR(-ENODEV);
 	}
 
-	clk_base = of_iomap(np, 0);
-	if (!clk_base) {
-		pr_err("%s: failed to map clock registers\n", __func__);
-		return ERR_PTR(-EINVAL);
-	}
+	regs = syscon_node_to_regmap(np);
+	if (IS_ERR(regs))
+		return ERR_CAST(regs);
 
-	ctrl->priv = (void __force *)clk_base;
+	ctrl->priv = regs;
 	ctrl->disable = s5pv210_retention_disable;
 
 	return ctrl;

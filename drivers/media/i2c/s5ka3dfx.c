@@ -77,7 +77,6 @@ struct s5ka3dfx_state {
 	struct v4l2_streamparm strm;
 	int framesize_index;
 	int freq;		/* MCLK in KHz */
-	int is_mipi;
 	int isize;
 	int ver;
 	int fps;
@@ -1172,12 +1171,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 		state->freq = DEFUALT_MCLK;
 	else
 		state->freq = pdata->freq;
-
-	if (!pdata->is_mipi) {
-		state->is_mipi = 0;
-		dev_dbg(&client->dev, "parallel mode\n");
-	} else
-		state->is_mipi = pdata->is_mipi;
 
 	/* Registering subdev */
 	v4l2_i2c_subdev_init(sd, client, &s5ka3dfx_ops);

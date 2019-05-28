@@ -13,9 +13,6 @@ struct s5ka3dfx_platform_data {
 	unsigned int pixelformat;
 	int freq;	/* MCLK in Hz */
 
-	/* This SoC supports Parallel & CSI-2 */
-	int is_mipi;
-
 	/* Board specific power pin control */
 	int (*cam_power)(int onoff);
 };

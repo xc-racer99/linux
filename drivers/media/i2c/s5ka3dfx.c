@@ -457,6 +457,124 @@ static const struct i2c_regval s5ka3dfx_frame_sizes[FS_MAX][30] = {
 	},
 };
 
+static const struct i2c_regval
+		s5ka3dfx_white_balances[V4L2_WHITE_BALANCE_CLOUDY + 1][7] = {
+	[V4L2_WHITE_BALANCE_AUTO] = {
+		{ 0xef, 0x03 },	{ 0x00, 0x87 },
+		{ 0xef, 0x00 },	{ 0x42, 0x6f },
+		{ 0x43, 0x40 },	{ 0x44, 0x5a },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_WHITE_BALANCE_INCANDESCENT] = {
+		{ 0xef, 0x03 },	{ 0x00, 0x85 },
+		{ 0xef, 0x00 },	{ 0x42, 0x48 },
+		{ 0x43, 0x43 },	{ 0x44, 0x7e },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_WHITE_BALANCE_FLUORESCENT] = {
+		{ 0xef, 0x03 },	{ 0x00, 0x85 },
+		{ 0xef, 0x00 },	{ 0x42, 0x5c },
+		{ 0x43, 0x40 },	{ 0x44, 0x6d },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_WHITE_BALANCE_DAYLIGHT] = {
+		{ 0xef, 0x03 },	{ 0x00, 0x85 },
+		{ 0xef, 0x00 },	{ 0x42, 0x67 },
+		{ 0x43, 0x40 },	{ 0x44, 0x4c },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_WHITE_BALANCE_CLOUDY] = {
+		{ 0xef, 0x03 },	{ 0x00, 0x85 },
+		{ 0xef, 0x00 },	{ 0x42, 0x75 },
+		{ 0x43, 0x3d },	{ 0x44, 0x42 },
+		{ REG_TERM, 0 },
+	},
+};
+
+/* Exposure value is index - 5 */
+static const struct i2c_regval
+		s5ka3dfx_exposure_values[11][4] = {
+	{
+		/* -5 */
+		{ 0xef, 0x03 },	{ 0x31, 0xc0 },	{ 0x32, 0x98 },
+		{ REG_TERM, 0 },
+	}, {
+		/* -4 */
+		{ 0xef, 0x03 },	{ 0x31, 0xA5 },	{ 0x32, 0x90 },
+		{ REG_TERM, 0 },
+	}, {
+		/* -3 */
+		{ 0xef, 0x03 },	{ 0x31, 0x9E },	{ 0x32, 0x88 },
+		{ REG_TERM, 0 },
+	}, {
+		/* - 2 */
+		{ 0xef, 0x03 },	{ 0x31, 0x90 },	{ 0x32, 0x00 },
+		{ REG_TERM, 0 },
+	}, {
+		/* -1 */
+		{ 0xef, 0x03 },	{ 0x31, 0x8A },	{ 0x32, 0x08 },
+		{ REG_TERM, 0 },
+	}, {
+		/* 0 */
+		{ 0xef, 0x03 },	{ 0x31, 0x00 },	{ 0x32, 0x09 },
+		{ REG_TERM, 0 },
+	}, {
+		/* +1 */
+		{ 0xef, 0x03 },	{ 0x31, 0x0A },	{ 0x32, 0x20 },
+		{ REG_TERM, 0 },
+	}, {
+		/* +2 */
+		{ 0xef, 0x03 },	{ 0x31, 0x14 },	{ 0x32, 0x30 },
+		{ REG_TERM, 0 },
+	}, {
+		/* +3 */
+		{ 0xef, 0x03 },	{ 0x31, 0x1E },	{ 0x32, 0x38 },
+		{ REG_TERM, 0 },
+	}, {
+		/* +4 */
+		{ 0xef, 0x03 },	{ 0x31, 0x28 },	{ 0x32, 0x40 },
+		{ REG_TERM, 0 },
+	}, {
+		/* +5 */
+		{ 0xef, 0x03 },	{ 0x31, 0x30 },	{ 0x32, 0x48 },
+		{ REG_TERM, 0 },
+	},
+};
+
+static const struct i2c_regval
+		s5ka3dfx_fx_modes[V4L2_COLORFX_AQUA + 1][6] = {
+	[V4L2_COLORFX_NONE] = {
+		{ 0xef, 0x00 },	{ 0xd3, 0x00 },
+		{ 0xd4, 0x00 },	{ 0xd5, 0x01 },
+		{ 0xd6, 0xa3 },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_COLORFX_BW] = {
+		{ 0xef, 0x00 },	{ 0xd3, 0x00 },
+		{ 0xd4, 0x03 },	{ 0xd5, 0x80 },
+		{ 0xd6, 0x80 },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_COLORFX_SEPIA] = {
+		{ 0xef, 0x00 },	{ 0xd3, 0x00 },
+		{ 0xd4, 0x03 },	{ 0xd5, 0x60 },
+		{ 0xd6, 0x8c },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_COLORFX_NEGATIVE] = {
+		{ 0xef, 0x00 },	{ 0xd3, 0x01 },
+		{ 0xd4, 0x00 },	{ 0xd5, 0x2c },
+		{ 0xd6, 0x81 },
+		{ REG_TERM, 0 },
+	},
+	[V4L2_COLORFX_AQUA] = {
+		{ 0xef, 0x00 },	{ 0xd3, 0x00 },
+		{ 0xd4, 0x03 },	{ 0xd5, 0xdc },
+		{ 0xd6, 0x00 },
+		{ REG_TERM, 0 },
+	},
+};
+
 static inline struct s5ka3dfx_info *to_s5ka3dfx(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct s5ka3dfx_info, sd);
@@ -490,13 +608,6 @@ static inline int s5ka3dfx_bulk_write_reg(struct v4l2_subdev *sd,
 		msg++;
 	}
 	return ret;
-}
-
-/* Automatic white balance control */
-static int s5ka3dfx_enable_autowhitebalance(struct v4l2_subdev *sd, int on)
-{
-	// TODO
-	return -EINVAL;
 }
 
 /* Called with struct s5ka3dfx_info.lock mutex held */
@@ -562,9 +673,7 @@ static int power_enable(struct s5ka3dfx_info *info)
 		return 0;
 	}
 
-
 	gpiod_set_value_cansleep(info->gpio_nstby, 0);
-
 	gpiod_set_value_cansleep(info->gpio_nreset, 0);
 
 	ret = regulator_bulk_enable(S5KA3DFX_NUM_SUPPLIES, info->supply);
@@ -631,19 +740,23 @@ static int s5ka3dfx_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	switch (ctrl->id) {
 	case V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE:
-		ret = s5ka3dfx_enable_autowhitebalance(sd, ctrl->val);
+		ret = s5ka3dfx_bulk_write_reg(sd,
+				s5ka3dfx_white_balances[ctrl->val]);
 		break;
 	case V4L2_CID_EXPOSURE:
-		// TODO - "brightness" from stock driver
+		/* index is offset by as out exposure range is -5 to +5 */
+		ret = s5ka3dfx_bulk_write_reg(sd,
+				s5ka3dfx_exposure_values[ctrl->val + 5]);
 		break;
 	case V4L2_CID_HFLIP:
-		s5ka3dfx_set_flip(sd, ctrl->val, info->vflip);
+		ret = s5ka3dfx_set_flip(sd, ctrl->val, info->vflip);
 		break;
 	case V4L2_CID_VFLIP:
-		s5ka3dfx_set_flip(sd, info->hflip, ctrl->val);
+		ret = s5ka3dfx_set_flip(sd, info->hflip, ctrl->val);
 		break;
 	case V4L2_CID_COLORFX:
-		// TODO
+		ret = s5ka3dfx_bulk_write_reg(sd,
+				s5ka3dfx_fx_modes[ctrl->val]);
 		break;
 	default:
 		ret = -EINVAL;

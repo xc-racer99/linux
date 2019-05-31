@@ -1011,9 +1011,11 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	v4l2_ctrl_handler_init(&info->hdl, 5);
 
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
-			  V4L2_CID_EXPOSURE, 0, 5, 1, 0);
+			  V4L2_CID_EXPOSURE, -5, 5, 1, 0);
+
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
 			  V4L2_CID_HFLIP, 0, 1, 1, 0);
+
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
 			  V4L2_CID_VFLIP, 0, 1, 1, 0);
 
@@ -1021,10 +1023,7 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	 * V4L2_COLORFX_NEGATIVE, V4L2_COLORFX_AQUA
 	 */
 	v4l2_ctrl_new_std_menu(&info->hdl, &s5ka3dfx_ctrl_ops,
-			  V4L2_CID_COLORFX, V4L2_COLORFX_AQUA,
-			  (V4L2_COLORFX_EMBOSS | V4L2_COLORFX_SKETCH
-			  | V4L2_COLORFX_SKY_BLUE | V4L2_COLORFX_GRASS_GREEN
-			  | V4L2_COLORFX_SKIN_WHITEN | V4L2_COLORFX_VIVID),
+			  V4L2_CID_COLORFX, V4L2_COLORFX_AQUA, ~0x40f,
 			  V4L2_COLORFX_NONE);
 
 	/*
@@ -1034,11 +1033,7 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	 */
 	v4l2_ctrl_new_std_menu(&info->hdl, &s5ka3dfx_ctrl_ops,
 			  V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE,
-			  V4L2_WHITE_BALANCE_CLOUDY,
-			  (V4L2_WHITE_BALANCE_MANUAL
-			  | V4L2_WHITE_BALANCE_FLUORESCENT_H
-			  | V4L2_WHITE_BALANCE_HORIZON
-			  | V4L2_WHITE_BALANCE_FLASH),
+			  V4L2_WHITE_BALANCE_CLOUDY, ~0x14e,
 			  V4L2_WHITE_BALANCE_AUTO);
 
 	sd->ctrl_handler = &info->hdl;

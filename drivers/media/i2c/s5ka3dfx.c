@@ -630,14 +630,11 @@ static int s5ka3dfx_s_ctrl(struct v4l2_ctrl *ctrl)
 		goto unlock;
 
 	switch (ctrl->id) {
-	case V4L2_CID_BRIGHTNESS:
-		// TODO
-		break;
 	case V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE:
 		ret = s5ka3dfx_enable_autowhitebalance(sd, ctrl->val);
 		break;
 	case V4L2_CID_EXPOSURE:
-		// TODO - blur
+		// TODO - "brightness" from stock driver
 		break;
 	case V4L2_CID_HFLIP:
 		s5ka3dfx_set_flip(sd, ctrl->val, info->vflip);
@@ -888,14 +885,38 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	sd->internal_ops = &s5ka3dfx_subdev_internal_ops;
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 
-	v4l2_ctrl_handler_init(&info->hdl, 3);
+	v4l2_ctrl_handler_init(&info->hdl, 5);
 
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
-			  V4L2_CID_AUTO_WHITE_BALANCE, 0, 1, 1, 1);
+			  V4L2_CID_EXPOSURE, 0, 5, 1, 0);
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
-			  V4L2_CID_RED_BALANCE, 0, 127, 1, 64);
+			  V4L2_CID_HFLIP, 0, 1, 1, 0);
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
-			  V4L2_CID_BLUE_BALANCE, 0, 127, 1, 64);
+			  V4L2_CID_VFLIP, 0, 1, 1, 0);
+
+	/* Supports V4L2_COLORFX_NONE, V4L2_COLORFX_BW, V4L2_COLORFX_SEPIA,
+	 * V4L2_COLORFX_NEGATIVE, V4L2_COLORFX_AQUA
+	 */
+	v4l2_ctrl_new_std_menu(&info->hdl, &s5ka3dfx_ctrl_ops,
+			  V4L2_CID_COLORFX, V4L2_COLORFX_AQUA,
+			  (V4L2_COLORFX_EMBOSS | V4L2_COLORFX_SKETCH
+			  | V4L2_COLORFX_SKY_BLUE | V4L2_COLORFX_GRASS_GREEN
+			  | V4L2_COLORFX_SKIN_WHITEN | V4L2_COLORFX_VIVID),
+			  V4L2_COLORFX_NONE);
+
+	/*
+	 * Supports V4L2_WHITE_BALANCE_AUTO, V4L2_WHITE_BALANCE_INCANDESCENT,
+	 * V4L2_WHITE_BALANCE_FLUORESCENT, V4L2_WHITE_BALANCE_DAYLIGHT,
+	 * V4L2_WHITE_BALANCE_CLOUDY
+	 */
+	v4l2_ctrl_new_std_menu(&info->hdl, &s5ka3dfx_ctrl_ops,
+			  V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE,
+			  V4L2_WHITE_BALANCE_CLOUDY,
+			  (V4L2_WHITE_BALANCE_MANUAL
+			  | V4L2_WHITE_BALANCE_FLUORESCENT_H
+			  | V4L2_WHITE_BALANCE_HORIZON
+			  | V4L2_WHITE_BALANCE_FLASH),
+			  V4L2_WHITE_BALANCE_AUTO);
 
 	sd->ctrl_handler = &info->hdl;
 
@@ -950,9 +971,17 @@ static const struct i2c_device_id s5ka3dfx_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, s5ka3dfx_id);
 
+#ifdef CONFIG_OF
+static const struct of_device_id s5k6a3_of_match[] = {
+	{ .compatible = "samsung,s5ka3dfx" },
+	{ /* sentinel */ }
+};
+MODULE_DEVICE_TABLE(of, s5k6a3_of_match);
+#endif
 
 static struct i2c_driver s5ka3dfx_i2c_driver = {
 	.driver = {
+		.of_match_table	= of_match_ptr(s5k6a3_of_match),
 		.name = MODULE_NAME
 	},
 	.probe		= s5ka3dfx_probe,

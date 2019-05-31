@@ -17,6 +17,7 @@
  * (at your option) any later version.
  */
 
+#include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/slab.h>
@@ -69,6 +70,7 @@ struct s5ka3dfx_info {
 	struct regulator_bulk_data supply[S5KA3DFX_NUM_SUPPLIES];
 	struct gpio_desc *gpio_nreset;
 	struct gpio_desc *gpio_nstby;
+	struct clk *mclk;
 
 	/* Protects the struct members below */
 	struct mutex lock;
@@ -686,6 +688,12 @@ static int power_enable(struct s5ka3dfx_info *info)
 
 	mdelay(5);
 
+	ret = clk_prepare_enable(info->mclk);
+	if (ret)
+		return ret;
+
+	mdelay(5);
+
 	gpiod_set_value_cansleep(info->gpio_nreset, 1);
 
 	mdelay(4);
@@ -708,6 +716,8 @@ static int power_disable(struct s5ka3dfx_info *info)
 
 	gpiod_set_value(info->gpio_nreset, 0);
 	gpiod_set_value(info->gpio_nstby, 0);
+
+	clk_disable_unprepare(info->mclk);
 
 	ret = regulator_bulk_disable(S5KA3DFX_NUM_SUPPLIES, info->supply);
 	if (ret)
@@ -1043,6 +1053,18 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 			"nstandby", GPIOD_OUT_HIGH);
 	info->curr_fmt = &s5ka3dfx_formats[0];
 	info->curr_win = &s5ka3dfx_sizes[0];
+
+	info->mclk = devm_clk_get(&client->dev, "mclk");
+	if (!info->mclk) {
+		ret = -EINVAL;
+		goto np_err;
+	}
+
+	ret = clk_set_rate(info->mclk, 24000000);
+	if (ret < 0) {
+		dev_err(&client->dev, "failed to set mclk to 24000000");
+		goto np_err;
+	}
 
 	for (i = 0; i < S5KA3DFX_NUM_SUPPLIES; i++)
 		info->supply[i].supply = s5ka3dfx_supply_name[i];

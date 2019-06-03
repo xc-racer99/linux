@@ -725,8 +725,8 @@ static int power_disable(struct s5ka3dfx_info *info)
 		return 0;
 	}
 
-	gpiod_set_value(info->gpio_nreset, 0);
-	gpiod_set_value(info->gpio_nstby, 0);
+	gpiod_set_value_cansleep(info->gpio_nreset, 0);
+	gpiod_set_value_cansleep(info->gpio_nstby, 0);
 
 	clk_disable_unprepare(info->mclk);
 
@@ -1055,8 +1055,20 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 
 	info->gpio_nreset = devm_gpiod_get(&client->dev,
 			"nreset", GPIOD_OUT_HIGH);
+	if (IS_ERR(info->gpio_nreset)) {
+		ret = PTR_ERR(info->gpio_nreset);
+		dev_err(&client->dev, "Failed to request reset gpio: %d\n", ret);
+		goto np_err;
+	}
+
 	info->gpio_nstby = devm_gpiod_get(&client->dev,
 			"nstandby", GPIOD_OUT_HIGH);
+	if (IS_ERR(info->gpio_nstby)) {
+		ret = PTR_ERR(info->gpio_nstby);
+		dev_err(&client->dev, "Failed to request standby gpio: %d\n", ret);
+		goto np_err;
+	}
+
 	info->curr_fmt = &s5ka3dfx_formats[0];
 	info->curr_win = &s5ka3dfx_sizes[0];
 

@@ -688,6 +688,17 @@ static int power_enable(struct s5ka3dfx_info *info)
 
 	mdelay(5);
 
+	if (!info->mclk) {
+		struct i2c_client *client = v4l2_get_subdevdata(&info->sd);
+
+		info->mclk = devm_clk_get(&client->dev, "mclk");
+		if (IS_ERR(info->mclk)) {
+			ret = PTR_ERR(info->mclk);
+			pr_err("s5ka3dfx: failed to get mclk, %d", ret);
+			return ret;
+		}
+	}
+
 	ret = clk_prepare_enable(info->mclk);
 	if (ret)
 		return ret;
@@ -1049,9 +1060,11 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	info->curr_fmt = &s5ka3dfx_formats[0];
 	info->curr_win = &s5ka3dfx_sizes[0];
 
+#if 0
 	info->mclk = devm_clk_get(&client->dev, "mclk");
-	if (!info->mclk) {
-		ret = -EINVAL;
+	if (IS_ERR(info->mclk)) {
+		ret = PTR_ERR(info->mclk);
+		dev_err(&client->dev, "failed to get mclk, %d", ret);
 		goto np_err;
 	}
 
@@ -1060,26 +1073,39 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to set mclk to 24000000");
 		goto np_err;
 	}
+#endif
 
 	for (i = 0; i < S5KA3DFX_NUM_SUPPLIES; i++)
 		info->supply[i].supply = s5ka3dfx_supply_name[i];
 
 	ret = devm_regulator_bulk_get(&client->dev, S5KA3DFX_NUM_SUPPLIES,
 				 info->supply);
-	if (ret)
+	if (ret) {
+		pr_err("s5ka3dfx: regulator error");
 		goto np_err;
+	}
 
 	info->pad.flags = MEDIA_PAD_FL_SOURCE;
 	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&sd->entity, 1, &info->pad);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("s5ka3dfx: media_entity_pads_init error");
 		goto np_err;
+	}
+
+	ret = v4l2_async_register_subdev(sd);
+	if (ret < 0) {
+		pr_err("s5ka3dfx: register subdev error");
+		goto np_err;
+	}
+
+	pr_err("s5ka3dfx: succesfully probed!");
 
 	return 0;
 
 np_err:
 	v4l2_ctrl_handler_free(&info->hdl);
-	v4l2_device_unregister_subdev(sd);
+	media_entity_cleanup(&sd->entity);
 	return ret;
 }
 
@@ -1088,7 +1114,7 @@ static int s5ka3dfx_remove(struct i2c_client *client)
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
 
-	v4l2_device_unregister_subdev(sd);
+	v4l2_async_unregister_subdev(sd);
 	v4l2_ctrl_handler_free(&info->hdl);
 	media_entity_cleanup(&sd->entity);
 

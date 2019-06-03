@@ -543,6 +543,7 @@
 		port {
 			s5ka3dfx_ep: endpoint {
 				remote-endpoint = <&fimc0_ep>;
+				bus-type = <5>; /* Parallel */
 				bus-width = <8>;
 				hsync-active = <0>;
 				vsync-active = <1>;
@@ -562,10 +563,11 @@
 		#size-cells = <0>;
 
 		/* camera A input */
-		port@0 {
-			reg = <0>;
+		port@1 {
+			reg = <1>;
 			fimc0_ep: endpoint {
 				remote-endpoint = <&s5ka3dfx_ep>;
+				bus-type = <5>; /* Parallel */
 				bus-width = <8>;
 				hsync-active = <0>;
 				vsync-active = <1>;

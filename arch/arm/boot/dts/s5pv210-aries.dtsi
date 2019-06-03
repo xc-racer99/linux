@@ -534,7 +534,7 @@
 		isp_host-supply = <&ldo15_reg>;
 
 		nreset-gpios = <&gpb 2 GPIO_ACTIVE_HIGH>;
-		nstby-gpios = <&gpb 0 GPIO_ACTIVE_HIGH>;
+		nstandby-gpios = <&gpb 0 GPIO_ACTIVE_HIGH>;
 
 		assigned-clocks = <&clocks MOUT_CAM0>, <&clocks DOUT_CAM0>;
 		assigned-clock-parents = <&xusbxti>;

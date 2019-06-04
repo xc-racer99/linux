@@ -707,7 +707,7 @@ static int power_enable(struct s5ka3dfx_info *info)
 
 	gpiod_set_value_cansleep(info->gpio_nreset, 1);
 
-	mdelay(4);
+	mdelay(5);
 
 	info->power = 1;
 
@@ -765,7 +765,7 @@ static int s5ka3dfx_s_ctrl(struct v4l2_ctrl *ctrl)
 				s5ka3dfx_white_balances[ctrl->val]);
 		break;
 	case V4L2_CID_EXPOSURE:
-		/* index is offset by as out exposure range is -5 to +5 */
+		/* index is offset by 5 as exposure range is -5 to +5 */
 		ret = s5ka3dfx_bulk_write_reg(sd,
 				s5ka3dfx_exposure_values[ctrl->val + 5]);
 		break;

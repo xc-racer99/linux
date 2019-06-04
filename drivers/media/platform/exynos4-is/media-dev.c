@@ -293,11 +293,17 @@ static int __fimc_pipeline_s_stream(struct exynos_media_pipeline *ep, bool on)
 		{ IDX_CSIS, IDX_FLITE, IDX_FIMC, IDX_SENSOR, IDX_IS_ISP },
 	};
 	struct fimc_pipeline *p = to_fimc_pipeline(ep);
-	struct fimc_md *fmd = entity_to_fimc_mdev(&p->subdevs[IDX_CSIS]->entity);
 	enum fimc_subdev_index sd_id;
 	int i, ret = 0;
 
 	if (p->subdevs[IDX_SENSOR] == NULL) {
+		struct fimc_md *fmd;
+		struct v4l2_subdev *subdev = p->subdevs[IDX_CSIS];
+		if (!subdev)
+			subdev = p->subdevs[IDX_FIMC];
+
+		fmd = entity_to_fimc_mdev(&subdev->entity);
+
 		if (!fmd->user_subdev_api) {
 			/*
 			 * Sensor must be already discovered if we

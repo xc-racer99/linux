@@ -569,8 +569,9 @@
 				remote-endpoint = <&s5ka3dfx_ep>;
 				bus-type = <5>; /* Parallel */
 				bus-width = <8>;
-				hsync-active = <0>;
-				vsync-active = <1>;
+				field-even-active = <1>;
+				hsync-active = <1>;
+				vsync-active = <0>;
 				pclk-sample = <1>;
 			};
 		};
@@ -579,4 +580,21 @@
 
 &fimc0 {
 	clock-frequency = <166750000>;
+
+	assigned-clocks = <&clocks MOUT_FIMC0>;
+	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
+&fimc1 {
+	clock-frequency = <166750000>;
+
+	assigned-clocks = <&clocks MOUT_FIMC1>;
+	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
+&fimc2 {
+	clock-frequency = <166750000>;
+
+	assigned-clocks = <&clocks MOUT_FIMC2>;
+	assigned-clock-parents = <&clocks MOUT_MPLL>;
 };

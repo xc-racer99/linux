@@ -43,6 +43,18 @@
 		};
 	};
 
+	touchkey_vdd: touchkey-vcc {
+		compatible = "regulator-fixed";
+		regulator-name = "VTOUCH_3.3V";
+		enable-active-high;
+		gpio = <&gpj3 2 GPIO_ACTIVE_HIGH>;
+	};
+
+	touchkey_vcc: touchkey-vdd {
+		compatible = "regulator-fixed";
+		regulator-name = "VTOUCH_1.8V";
+	};
+
 	vibrator_pwr: regulator-fixed-0 {
 		compatible = "regulator-fixed";
 		regulator-name = "vibrator-en";
@@ -344,6 +356,27 @@
 		accelermoter@38 {
 			compatible = "bosch,bma023";
 			reg = <0x38>;
+		};
+	};
+
+	i2c_touchkey: i2c-gpio-3 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpj3 0 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpj3 1 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		touchkey@20 {
+			compatible = "cypress,aries-touchkey";
+			reg = <0x20>;
+			vdd-supply = <&touchkey_vdd>;
+			vcc-supply = <&touchkey_vcc>;
+			linux,keycodes = <KEY_MENU KEY_BACK KEY_HOMEPAGE KEY_SEARCH>;
+			interrupt-parent = <&gpj4>;
+			interrupts = <1 IRQ_TYPE_LEVEL_LOW>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&touchkey_irq>;
 		};
 	};
 

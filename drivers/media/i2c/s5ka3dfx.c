@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Driver for Samsung S5KA3DFX UXGA 1/4" 2.0Mp CMOS Image Sensor SoC with
  * an Embedded Image Processor
@@ -10,11 +11,6 @@
  *
  * Initial register configuration based on a driver
  * Copyright (C) 2009, Jinsung Yang <jsgood.yang@samsung.com>.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
  */
 
 #include <linux/clk.h>
@@ -799,14 +795,6 @@ static int s5ka3dfx_enum_mbus_code(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int s5ka3dfx_enum_frame_interval(struct v4l2_subdev *sd,
-			      struct v4l2_subdev_pad_config *cfg,
-			      struct v4l2_subdev_frame_interval_enum *fie)
-{
-	// TODO
-	return -EINVAL;
-}
-
 static int s5ka3dfx_get_fmt(struct v4l2_subdev *sd,
 			   struct v4l2_subdev_pad_config *cfg,
 			   struct v4l2_subdev_format *fmt)
@@ -848,8 +836,9 @@ static const struct s5ka3dfx_format *s5ka3dfx_try_fmt(struct v4l2_subdev *sd,
 	return &s5ka3dfx_formats[i];
 }
 
-static int s5ka3dfx_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg,
-			   struct v4l2_subdev_format *fmt)
+static int s5ka3dfx_set_fmt(struct v4l2_subdev *sd,
+			    struct v4l2_subdev_pad_config *cfg,
+			    struct v4l2_subdev_format *fmt)
 {
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
 	const struct s5ka3dfx_frmsize *size = NULL;
@@ -929,8 +918,6 @@ static int s5ka3dfx_s_stream(struct v4l2_subdev *sd, int on)
 		if (ret)
 			return ret;
 
-		msleep(5);
-
 		ret = power_enable(info);
 		if (!ret)
 			ret = s5ka3dfx_bulk_write_reg(sd, s5ka3dfx_base_regs);
@@ -943,20 +930,6 @@ static int s5ka3dfx_s_stream(struct v4l2_subdev *sd, int on)
 	return ret;
 }
 
-static int s5k6aa_g_frame_interval(struct v4l2_subdev *sd,
-				   struct v4l2_subdev_frame_interval *fi)
-{
-	// TODO
-	return -EINVAL;
-}
-
-static int s5k6aa_s_frame_interval(struct v4l2_subdev *sd,
-				   struct v4l2_subdev_frame_interval *fi)
-{
-	// TODO
-	return -EINVAL;
-}
-
 static int s5ka3dfx_log_status(struct v4l2_subdev *sd)
 {
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
@@ -967,7 +940,8 @@ static int s5ka3dfx_log_status(struct v4l2_subdev *sd)
 
 static int s5ka3dfx_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
-	struct v4l2_mbus_framefmt *mf = v4l2_subdev_get_try_format(sd, fh->pad, 0);
+	struct v4l2_mbus_framefmt *mf =
+			v4l2_subdev_get_try_format(sd, fh->pad, 0);
 
 	mf->width = s5ka3dfx_sizes[0].width;
 	mf->height = s5ka3dfx_sizes[0].height;
@@ -992,21 +966,12 @@ static const struct v4l2_subdev_core_ops s5ka3dfx_core_ops = {
 
 static const struct v4l2_subdev_pad_ops s5ka3dfx_pad_ops = {
 	.enum_mbus_code		= s5ka3dfx_enum_mbus_code,
-#if 0
-	// TODO
-	.enum_frame_interval	= s5ka3dfx_enum_frame_interval,
-#endif
 	.get_fmt		= s5ka3dfx_get_fmt,
 	.set_fmt		= s5ka3dfx_set_fmt,
 };
 
 static const struct v4l2_subdev_video_ops s5ka3dfx_video_ops = {
 	.s_stream		= s5ka3dfx_s_stream,
-#if 0
-	// TODO
-	.g_frame_interval	= s5ka3dfx_g_frame_interval,
-	.s_frame_interval	= s5ka3dfx_s_frame_interval,
-#endif
 };
 
 static const struct v4l2_subdev_ops s5ka3dfx_ops = {
@@ -1037,7 +1002,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	v4l2_ctrl_handler_init(&info->hdl, 5);
 
 #if 0
-
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
 			  V4L2_CID_EXPOSURE, -5, 5, 1, 0);
 
@@ -1075,7 +1039,7 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 			"nreset", GPIOD_OUT_HIGH);
 	if (IS_ERR(info->gpio_nreset)) {
 		ret = PTR_ERR(info->gpio_nreset);
-		dev_err(&client->dev, "Failed to request reset gpio: %d\n", ret);
+		dev_err(&client->dev, "nreset gpio request fail: %d\n", ret);
 		goto np_err;
 	}
 
@@ -1083,7 +1047,7 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 			"nstandby", GPIOD_OUT_HIGH);
 	if (IS_ERR(info->gpio_nstby)) {
 		ret = PTR_ERR(info->gpio_nstby);
-		dev_err(&client->dev, "Failed to request standby gpio: %d\n", ret);
+		dev_err(&client->dev, "nstandby gpiorequest fail: %d\n", ret);
 		goto np_err;
 	}
 
@@ -1093,7 +1057,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	info->mclk = devm_clk_get(&client->dev, "mclk");
 	if (IS_ERR(info->mclk)) {
 		ret = PTR_ERR(info->mclk);
-		dev_err(&client->dev, "failed to get mclk, %d", ret);
 		goto np_err;
 	}
 
@@ -1108,26 +1071,20 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 
 	ret = devm_regulator_bulk_get(&client->dev, S5KA3DFX_NUM_SUPPLIES,
 				 info->supply);
-	if (ret) {
-		pr_err("s5ka3dfx: regulator error");
+	if (ret)
 		goto np_err;
-	}
 
 	info->pad.flags = MEDIA_PAD_FL_SOURCE;
 	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&sd->entity, 1, &info->pad);
-	if (ret < 0) {
-		pr_err("s5ka3dfx: media_entity_pads_init error");
+	if (ret < 0)
 		goto np_err;
-	}
 
 	ret = v4l2_async_register_subdev(sd);
-	if (ret < 0) {
-		pr_err("s5ka3dfx: register subdev error");
+	if (ret < 0)
 		goto np_err;
-	}
 
-	pr_err("s5ka3dfx: succesfully probed!");
+	dev_info(&client->dev, "s5ka3dfx: successfully probed");
 
 	return 0;
 

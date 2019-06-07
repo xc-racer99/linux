@@ -603,13 +603,22 @@ static inline int s5ka3dfx_bulk_write_reg(struct v4l2_subdev *sd,
 		buf[0] = msg->addr;
 		buf[1] = msg->val;
 
+	int i;
+	for (i = 0; i < 2; i++) {
+		dev_err(&client->dev, "buf[%d] = %x  ", i, buf[i]);
+		if (i == 1)
+			dev_err(&client->dev, "\n");
+	}
+
 		ret = i2c_transfer(client->adapter, &i2c_msg, 1);
 
-		if (ret)
-			break;
+		if (ret < 0) {
+			dev_err(&client->dev, "i2c transfer failed: %d", ret);
+			return -EIO;
+		}
 		msg++;
 	}
-	return ret;
+	return 0;
 }
 
 /* Called with struct s5ka3dfx_info.lock mutex held */
@@ -884,6 +893,8 @@ static int s5ka3dfx_start_preview(struct v4l2_subdev *sd)
 {
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
 
+	pr_err("s5ka3dfx: starting preview");
+
 	return s5ka3dfx_bulk_write_reg(sd,
 			s5ka3dfx_frame_sizes[info->curr_win->frs]);
 }
@@ -892,6 +903,8 @@ static int s5ka3dfx_s_power(struct v4l2_subdev *sd, int on)
 {
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
 	int ret;
+
+	pr_err("s5ka3dfx: powering %s", on ? "on" : "off");
 
 	mutex_lock(&info->lock);
 	if (on) {
@@ -1021,6 +1034,8 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 
 	v4l2_ctrl_handler_init(&info->hdl, 5);
 
+#if 0
+
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
 			  V4L2_CID_EXPOSURE, -5, 5, 1, 0);
 
@@ -1046,6 +1061,8 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 			  V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE,
 			  V4L2_WHITE_BALANCE_CLOUDY, ~0x14e,
 			  V4L2_WHITE_BALANCE_AUTO);
+
+#endif
 
 	sd->ctrl_handler = &info->hdl;
 

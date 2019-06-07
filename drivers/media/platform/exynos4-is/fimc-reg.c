@@ -726,9 +726,6 @@ int fimc_hw_set_camera_type(struct fimc_dev *fimc,
 			 source->fimc_bus_type);
 		return -EINVAL;
 	}
-
-	cfg |= FIMC_REG_CIGCTRL_TESTPAT_COLOR_BAR;
-
 	writel(cfg, fimc->regs + FIMC_REG_CIGCTRL);
 
 	return 0;

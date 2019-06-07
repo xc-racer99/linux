@@ -39,6 +39,9 @@ MODULE_PARM_DESC(debug, "Enable module debug trace. Set to 1 to enable.");
 /* The token to mark an array end */
 #define REG_TERM		0xFFFF
 
+/* I2C retry attempts */
+#define I2C_RETRY_COUNT		(5)
+
 struct s5ka3dfx_format {
 	u32 code;
 	enum v4l2_colorspace colorspace;
@@ -593,7 +596,7 @@ static inline int s5ka3dfx_bulk_write_reg(struct v4l2_subdev *sd,
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct i2c_msg i2c_msg;
 	unsigned char buf[2];
-	int ret = 0;
+	int retry, ret = 0;
 
 	i2c_msg.addr = client->addr;
 	i2c_msg.len = 2;
@@ -603,14 +606,13 @@ static inline int s5ka3dfx_bulk_write_reg(struct v4l2_subdev *sd,
 		buf[0] = msg->addr;
 		buf[1] = msg->val;
 
-	int i;
-	for (i = 0; i < 2; i++) {
-		dev_err(&client->dev, "buf[%d] = %x  ", i, buf[i]);
-		if (i == 1)
-			dev_err(&client->dev, "\n");
-	}
+		for (retry = 0; retry < I2C_RETRY_COUNT; retry++) {
+			ret = i2c_transfer(client->adapter, &i2c_msg, 1);
+			if (ret == 1)
+				break;
 
-		ret = i2c_transfer(client->adapter, &i2c_msg, 1);
+			msleep_interruptible(10);
+		}
 
 		if (ret < 0) {
 			dev_err(&client->dev, "i2c transfer failed: %d", ret);
@@ -618,6 +620,7 @@ static inline int s5ka3dfx_bulk_write_reg(struct v4l2_subdev *sd,
 		}
 		msg++;
 	}
+
 	return 0;
 }
 
@@ -696,17 +699,6 @@ static int power_enable(struct s5ka3dfx_info *info)
 	gpiod_set_value_cansleep(info->gpio_nstby, 1);
 
 	mdelay(5);
-
-	if (!info->mclk) {
-		struct i2c_client *client = v4l2_get_subdevdata(&info->sd);
-
-		info->mclk = devm_clk_get(&client->dev, "mclk");
-		if (IS_ERR(info->mclk)) {
-			ret = PTR_ERR(info->mclk);
-			pr_err("s5ka3dfx: failed to get mclk, %d", ret);
-			return ret;
-		}
-	}
 
 	ret = clk_prepare_enable(info->mclk);
 	if (ret)
@@ -893,8 +885,6 @@ static int s5ka3dfx_start_preview(struct v4l2_subdev *sd)
 {
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
 
-	pr_err("s5ka3dfx: starting preview");
-
 	return s5ka3dfx_bulk_write_reg(sd,
 			s5ka3dfx_frame_sizes[info->curr_win->frs]);
 }
@@ -904,8 +894,6 @@ static int s5ka3dfx_s_power(struct v4l2_subdev *sd, int on)
 	struct s5ka3dfx_info *info = to_s5ka3dfx(sd);
 	int ret;
 
-	pr_err("s5ka3dfx: powering %s", on ? "on" : "off");
-
 	mutex_lock(&info->lock);
 	if (on) {
 		ret = power_enable(info);
@@ -914,11 +902,12 @@ static int s5ka3dfx_s_power(struct v4l2_subdev *sd, int on)
 	} else {
 		ret = power_disable(info);
 	}
-	mutex_unlock(&info->lock);
 
 	/* Restore the controls state */
 	if (!ret && on)
 		ret = v4l2_ctrl_handler_setup(&info->hdl);
+
+	mutex_unlock(&info->lock);
 
 	return ret;
 }
@@ -931,11 +920,24 @@ static int s5ka3dfx_s_stream(struct v4l2_subdev *sd, int on)
 	mutex_lock(&info->lock);
 	if (on) {
 		ret = s5ka3dfx_start_preview(sd);
-		if (!ret)
-			info->streaming = on;
 	} else {
-		// TODO - how do we turn streaming off?
+		/* No known way of turning streaming off,
+		 * so simply reset the chip and prepare it
+		 * again
+		 */
+		ret = power_disable(info);
+		if (ret)
+			return ret;
+
+		msleep(5);
+
+		ret = power_enable(info);
+		if (!ret)
+			ret = s5ka3dfx_bulk_write_reg(sd, s5ka3dfx_base_regs);
 	}
+
+	if (!ret)
+		info->streaming = on;
 
 	mutex_unlock(&info->lock);
 	return ret;
@@ -1061,7 +1063,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 			  V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE,
 			  V4L2_WHITE_BALANCE_CLOUDY, ~0x14e,
 			  V4L2_WHITE_BALANCE_AUTO);
-
 #endif
 
 	sd->ctrl_handler = &info->hdl;
@@ -1089,7 +1090,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	info->curr_fmt = &s5ka3dfx_formats[0];
 	info->curr_win = &s5ka3dfx_sizes[0];
 
-#if 0
 	info->mclk = devm_clk_get(&client->dev, "mclk");
 	if (IS_ERR(info->mclk)) {
 		ret = PTR_ERR(info->mclk);
@@ -1102,7 +1102,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to set mclk to 24000000");
 		goto np_err;
 	}
-#endif
 
 	for (i = 0; i < S5KA3DFX_NUM_SUPPLIES; i++)
 		info->supply[i].supply = s5ka3dfx_supply_name[i];

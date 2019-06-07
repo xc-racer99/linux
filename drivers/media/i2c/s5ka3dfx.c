@@ -891,12 +891,11 @@ static int s5ka3dfx_s_power(struct v4l2_subdev *sd, int on)
 	} else {
 		ret = power_disable(info);
 	}
+	mutex_unlock(&info->lock);
 
 	/* Restore the controls state */
 	if (!ret && on)
 		ret = v4l2_ctrl_handler_setup(&info->hdl);
-
-	mutex_unlock(&info->lock);
 
 	return ret;
 }
@@ -1001,7 +1000,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 
 	v4l2_ctrl_handler_init(&info->hdl, 5);
 
-#if 0
 	v4l2_ctrl_new_std(&info->hdl, &s5ka3dfx_ctrl_ops,
 			  V4L2_CID_EXPOSURE, -5, 5, 1, 0);
 
@@ -1027,7 +1025,6 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 			  V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE,
 			  V4L2_WHITE_BALANCE_CLOUDY, ~0x14e,
 			  V4L2_WHITE_BALANCE_AUTO);
-#endif
 
 	sd->ctrl_handler = &info->hdl;
 

@@ -111,7 +111,7 @@ static const struct s5ka3dfx_frmsize s5ka3dfx_sizes[] = {
 /* Supported pixel formats. */
 static const struct s5ka3dfx_format s5ka3dfx_formats[] = {
 	{
-		.code		= MEDIA_BUS_FMT_UYVY8_2X8,
+		.code		= MEDIA_BUS_FMT_YUYV8_2X8,
 		.colorspace	= V4L2_COLORSPACE_JPEG,
 	},
 };

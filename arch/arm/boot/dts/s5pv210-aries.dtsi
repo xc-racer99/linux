@@ -78,6 +78,16 @@
 		pinctrl-0 = <&gp2a_power>;
 	};
 
+	isp_host_reg: regulator-fixed-5 {
+		compatible = "regulator-fixed";
+		regulator-name = "vga_isp_sys";
+		enable-active-high;
+		gpio = <&gpb 7 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&isp_host_ena>;
+	};
+
 	wifi_pwrseq: wifi-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&gpg1 2 GPIO_ACTIVE_LOW>;
@@ -588,6 +598,69 @@
 	status = "okay";
 };
 
+&camera {
+	pinctrl-0 = <&cam_port_a_io &cam_port_a_clk_active>;
+	pinctrl-1 = <&cam_port_a_io &cam_port_a_clk_idle>;
+	pinctrl-names = "default", "idle";
+
+	parallel-ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/* camera A input */
+		port@1 {
+		        #address-cells = <1>;
+		        #size-cells = <0>;
+			reg = <1>;
+
+			cam_a_ep1: endpoint@0 {
+				reg = <0>;
+
+				remote-endpoint = <&ce147_ep>;
+				bus-type = <5>; /* Parallel */
+				bus-width = <8>;
+				field-even-active = <1>;
+				hsync-active = <1>;
+				vsync-active = <0>;
+				pclk-sample = <1>;
+			};
+
+			cam_a_ep2: endpoint@1 {
+				reg = <1>;
+
+				remote-endpoint = <&s5ka3dfx_ep>;
+				bus-type = <5>; /* Parallel */
+				bus-width = <8>;
+				field-even-active = <1>;
+				hsync-active = <1>;
+				vsync-active = <0>;
+				pclk-sample = <1>;
+			};
+		};
+	};
+};
+
+&fimc0 {
+	clock-frequency = <166750000>;
+
+	assigned-clocks = <&clocks MOUT_FIMC0>;
+	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
+&fimc1 {
+	clock-frequency = <166750000>;
+
+	assigned-clocks = <&clocks MOUT_FIMC1>;
+	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
+&fimc2 {
+	clock-frequency = <166750000>;
+
+	assigned-clocks = <&clocks MOUT_FIMC2>;
+	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
 &fimd {
 	pinctrl-names = "default";
 	pinctrl-0 = <&lcd_clk &lcd_data24>;
@@ -612,6 +685,85 @@
 	vusb_d-supply = <&ldo3_reg>;
 	dr_mode = "peripheral";
 	status = "okay";
+};
+
+&i2c0 {
+	samsung,i2c-sda-delay = <100>;
+	samsung,i2c-max-bus-freq = <100000>;
+	samsung,i2c-slave-addr = <0x10>;
+	status = "okay";
+
+	ce147: sensor@3c {
+		compatible = "nec,ce147";
+		reg = <0x3c>;
+
+		clocks = <&camera 0>;
+		clock-names = "mclk";
+
+		isp_core-supply = <&buck4_reg>;
+		isp_host-supply = <&ldo15_reg>;
+		isp_sys-supply = <&isp_host_reg>;
+		af-supply = <&ldo11_reg>;
+		sensor-supply = <&ldo12_reg>;
+		vddio-supply = <&ldo13_reg>;
+		dvdd-supply = <&ldo14_reg>;
+		avdd-supply = <&ldo16_reg>;
+
+		nreset-gpios = <&gpj1 5 GPIO_ACTIVE_HIGH>;
+		ena-gpios = <&gpj0 6 GPIO_ACTIVE_HIGH>;
+
+		assigned-clocks = <&clocks MOUT_CAM0>, <&clocks DOUT_CAM0>;
+		assigned-clock-parents = <&xusbxti>;
+		assigned-clock-rates = <0>, <24000000>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&ce147_pwr>;
+
+		port {
+			ce147_ep: endpoint {
+				remote-endpoint = <&cam_a_ep1>;
+				bus-type = <5>; /* Parallel */
+				bus-width = <8>;
+				hsync-active = <0>;
+				vsync-active = <1>;
+				pclk-sample = <1>;
+			};
+		};
+	};
+
+	s5ka3dfx: sensor@62 {
+		compatible = "samsung,s5ka3dfx";
+		reg = <0x62>;
+
+		clocks = <&camera 0>;
+		clock-names = "mclk";
+
+		vddio-supply = <&ldo13_reg>;
+		isp_sys-supply = <&isp_host_reg>;
+		dvdd-supply = <&ldo14_reg>;
+		isp_host-supply = <&ldo15_reg>;
+
+		nreset-gpios = <&gpb 2 GPIO_ACTIVE_HIGH>;
+		nstandby-gpios = <&gpb 0 GPIO_ACTIVE_HIGH>;
+
+		assigned-clocks = <&clocks MOUT_CAM0>, <&clocks DOUT_CAM0>;
+		assigned-clock-parents = <&xusbxti>;
+		assigned-clock-rates = <0>, <24000000>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&s5ka3dfx_pwr>;
+
+		port {
+			s5ka3dfx_ep: endpoint {
+				remote-endpoint = <&cam_a_ep2>;
+				bus-type = <5>; /* Parallel */
+				bus-width = <8>;
+				hsync-active = <0>;
+				vsync-active = <1>;
+				pclk-sample = <1>;
+			};
+		};
+	};
 };
 
 &i2c2 {
@@ -651,6 +803,12 @@
 };
 
 &pinctrl0 {
+	s5ka3dfx_pwr: s5ka3dfx-pwr {
+		samsung,pins = "gpb-0", "gpb-2";
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
 	yas529_reset: yas529-reset {
 		samsung,pins = "gpb-1";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
@@ -663,6 +821,12 @@
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-val = <1>;
+	};
+
+	isp_host_ena: isp-host-ena {
+		samsung,pins = "gpb-7";
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};
 
 	codec_ldo: codec-ldo {
@@ -750,6 +914,12 @@
 	ts_irq: ts-irq {
 		samsung,pins = "gpj0-5";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	ce147_pwr: ce147-pwr {
+		samsung,pins = "gpj0-6", "gpj1-5";
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};

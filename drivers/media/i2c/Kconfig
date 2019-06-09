@@ -568,6 +568,15 @@ config VIDEO_SMIAPP_PLL
 
 if MEDIA_CAMERA_SUPPORT
 
+config VIDEO_CE147
+        tristate "NEC CE147 Camera Sensor"
+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a V4L2 sensor driver for NEC CE147 5MP
+	  camera sensor with an embedded SoC image signal processor.
+
+
 config VIDEO_HI556
 	tristate "Hynix Hi-556 sensor support"
 	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API

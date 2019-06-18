@@ -48,10 +48,13 @@
 #define	PVR_MOD_STATIC	static
 #endif
 
-#if defined(PVR_LDM_PLATFORM_PRE_REGISTERED)
-#if !defined(NO_HARDWARE)
+#if (defined(PVR_LDM_PLATFORM_PRE_REGISTERED) || defined(PVR_LDM_DEVICE_TREE)) && !defined(NO_HARDWARE)
 #define PVR_USE_PRE_REGISTERED_PLATFORM_DEV
 #endif
+
+#if defined(PVR_LDM_DEVICE_TREE) && !defined(NO_HARDWARE)
+#define PVR_USE_DEVICE_TREE
+#include <linux/of.h>
 #endif
 
 #include <linux/init.h>
@@ -83,6 +86,8 @@
 #include <asm/atomic.h>
 #endif
 
+#include <linux/fb.h>
+
 #include "img_defs.h"
 #include "services.h"
 #include "kerneldisplay.h"
@@ -104,6 +109,8 @@
 #include "lock.h"
 #include "linkage.h"
 #include "buffer_manager.h"
+
+#include "../s3c_lcd/s3c_lcd.h"
 
 #if defined(SUPPORT_DRI_DRM)
 #include "pvr_drm.h"
@@ -203,7 +210,15 @@ struct pci_device_id powervr_id_table[] __devinitdata = {
 MODULE_DEVICE_TABLE(pci, powervr_id_table);
 #endif
 
-#if defined(PVR_USE_PRE_REGISTERED_PLATFORM_DEV)
+#if defined(PVR_USE_DEVICE_TREE)
+static struct of_device_id powervr_id_table[] = {
+	{
+		.compatible = SYS_SGX_DEV_NAME
+	},
+	{}
+};
+MODULE_DEVICE_TABLE(of, powervr_id_table);
+#elif defined(PVR_USE_PRE_REGISTERED_PLATFORM_DEV)
 static struct platform_device_id powervr_id_table[] __devinitdata = {
 	{SYS_SGX_DEV_NAME, 0},
 	{}
@@ -214,12 +229,15 @@ static LDM_DRV powervr_driver = {
 #if defined(PVR_LDM_PLATFORM_MODULE)
 	.driver = {
 		.name		= DRVNAME,
+#if defined(PVR_USE_DEVICE_TREE)
+		.of_match_table = powervr_id_table,
+#endif
 	},
 #endif
 #if defined(PVR_LDM_PCI_MODULE)
 	.name		= DRVNAME,
 #endif
-#if defined(PVR_LDM_PCI_MODULE) || defined(PVR_USE_PRE_REGISTERED_PLATFORM_DEV)
+ #if (defined(PVR_LDM_PCI_MODULE) || defined(PVR_USE_PRE_REGISTERED_PLATFORM_DEV)) && !defined(PVR_USE_DEVICE_TREE)
 	.id_table = powervr_id_table,
 #endif
 	.probe		= PVRSRVDriverProbe,
@@ -258,9 +276,13 @@ static int PVRSRVDriverProbe(LDM_DEV *pDevice)
 static int __devinit PVRSRVDriverProbe(LDM_DEV *pDevice, const struct pci_device_id *id)
 #endif
 {
+	int ret;
 	SYS_DATA *psSysData;
 
 	PVR_TRACE(("PVRSRVDriverProbe(pDevice=%p)", pDevice));
+
+	if (num_registered_fb == 0)
+		return -EPROBE_DEFER;
 
 #if 0
 	
@@ -291,6 +313,13 @@ static int __devinit PVRSRVDriverProbe(LDM_DEV *pDevice, const struct pci_device
 		return PTR_ERR(gpsIONClient);
 	}
 #endif 
+
+	ret = s3c_displayclass_init();
+
+	if (ret) {
+		pr_err("PVR: displayclass init failure: %d", ret);
+		return ret;
+	}
 
 	return 0;
 }
@@ -333,6 +362,8 @@ static void __devexit PVRSRVDriverRemove(LDM_DEV *pDevice)
 		return -EINVAL;
 	}
 #endif
+
+	s3c_displayclass_deinit();
 
 #if defined (PVR_LDM_PLATFORM_MODULE)
 	return 0;

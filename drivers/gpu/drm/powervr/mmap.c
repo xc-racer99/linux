@@ -54,6 +54,11 @@
 #include <drm/drmP.h>
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,20,0))
+#include <linux/pfn_t.h>
+#endif
+
+
 #include "services_headers.h"
 
 #include "pvrmmap.h"
@@ -562,7 +567,11 @@ DoMapToUser(LinuxMemArea *psLinuxMemArea,
 #if defined(PVR_MAKE_ALL_PFNS_SPECIAL)
 	    if (bMixedMap)
 	    {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,20,0))
+		result = vmf_insert_mixed(ps_vma, ulVMAPos, pfn_to_pfn_t(pfn));
+#else
 		result = vm_insert_mixed(ps_vma, ulVMAPos, pfn);
+#endif
                 if(result != 0)
                 {
                     PVR_DPF((PVR_DBG_ERROR,"%s: Error - vm_insert_mixed failed (%d)", __FUNCTION__, result));
@@ -801,7 +810,7 @@ PVRMMap(struct file* pFile, struct vm_area_struct* ps_vma)
     PVR_DPF((PVR_DBG_MESSAGE, "%s: Mapped psLinuxMemArea 0x%p\n",
          __FUNCTION__, psOffsetStruct->psLinuxMemArea));
 
-    ps_vma->vm_flags |= VM_RESERVED;
+    ps_vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
     ps_vma->vm_flags |= VM_IO;
 
     

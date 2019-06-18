@@ -115,10 +115,8 @@ pvrsrvkm-y := \
 ccflags-$(CONFIG_ARCH_S5PV210) += \
 	-DPVR_BUILD_DIR="\"smdkc110_android\"" \
 	-Idrivers/gpu/drm/powervr/s5pc110 \
-	-DDISPLAY_CONTROLLER=s3c_lcd \
-    -DSLSI_S5PC110
-
-ccflags-$(CONFIG_ARCH_S5PV210) += \
+	-DPVR_LDM_DEVICE_TREE \
+	-DSYS_SGX_DEV_NAME="\"samsung,s5pc110-sgx540\"" \
 	-DSGX540 -DSUPPORT_SGX540 \
 	-DSGX_CORE_REV=120
 
@@ -127,8 +125,7 @@ pvrsrvkm-$(CONFIG_ARCH_S5PV210) += \
 	s5pc110/sysutils.o
 
 s3c_lcd-y := \
-	s3c_lcd/s3c_displayclass.o \
-	s3c_lcd/s3c_lcd.o
+	s3c_lcd/s3c_displayclass.o
 
 obj-$(CONFIG_PVR_PDUMP) += dbgdrv/
 

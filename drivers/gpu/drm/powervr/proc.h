@@ -37,6 +37,10 @@
 
 typedef off_t (pvr_read_proc_t)(IMG_CHAR *, size_t, off_t);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
+typedef int (read_proc_t)(char *page, char **start, off_t off,int count, int *eof, void *data);
+typedef int (write_proc_t)(struct file *file, const char __user *buffer,unsigned long count, void *data);
+#endif
 
 #define PVR_PROC_SEQ_START_TOKEN (void*)1
 typedef void* (pvr_next_proc_seq_t)(struct seq_file *,void*,loff_t);
@@ -50,6 +54,10 @@ typedef struct _PVR_PROC_SEQ_HANDLERS_ {
 	pvr_off2element_proc_seq_t *off2element;
 	pvr_startstop_proc_seq_t *startstop;
 	IMG_VOID *data;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
+	read_proc_t *read_proc;
+	write_proc_t *write_proc;
+#endif
 } PVR_PROC_SEQ_HANDLERS;
 
 

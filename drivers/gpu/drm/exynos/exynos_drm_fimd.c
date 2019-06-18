@@ -1199,7 +1199,7 @@ static int fimd_probe(struct platform_device *pdev)
 	}
 
 	ret = devm_request_irq(dev, res->start, fimd_irq_handler,
-							0, "drm_fimd", ctx);
+							IRQF_SHARED, "drm_fimd", ctx);
 	if (ret) {
 		dev_err(dev, "irq request failed.\n");
 		return ret;

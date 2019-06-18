@@ -27,7 +27,9 @@
 #ifndef __SERVICES_PROC_H__
 #define __SERVICES_PROC_H__
 
-#include <asm/system.h>		
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22) && LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0))
+#include <asm/system.h>
+#endif
 #include <linux/proc_fs.h>	
 #include <linux/seq_file.h> 
 

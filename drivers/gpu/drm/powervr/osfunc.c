@@ -34,7 +34,7 @@
 
 #include <asm/io.h>
 #include <asm/page.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22) && LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0))
 #include <asm/system.h>
 #endif
 #include <asm/cacheflush.h>

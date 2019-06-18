@@ -36,10 +36,14 @@
 extern "C" {
 #endif
 
+#include <linux/version.h>
+
 #if defined(__linux__) && defined(__KERNEL__)
 #include <linux/hardirq.h>
 #include <linux/string.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22) && LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0))
 #include <asm/system.h>
+#endif
 #if defined(__arm__)
 #include <asm/memory.h>
 #endif

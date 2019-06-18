@@ -116,7 +116,8 @@ ccflags-$(CONFIG_ARCH_S5PV210) += \
 	-DPVR_BUILD_DIR="\"smdkc110_android\"" \
 	-Idrivers/gpu/drm/powervr/s5pc110 \
 	-DDISPLAY_CONTROLLER=s3c_lcd \
-    -DSLSI_S5PC110
+	-DPVR_LDM_DEVICE_TREE \
+	-DSYS_SGX_DEV_NAME="\"samsung,s5pc110-sgx540\""
 
 ccflags-$(CONFIG_ARCH_S5PV210) += \
 	-DSGX540 -DSUPPORT_SGX540 \

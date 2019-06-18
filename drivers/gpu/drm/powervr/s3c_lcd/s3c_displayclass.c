@@ -38,10 +38,11 @@
 #include <asm/irq.h>
 #include <asm/uaccess.h>
 #include <asm/memory.h>
-#include <plat/regs-fb.h>
 #include <linux/console.h>
 #include <linux/workqueue.h>
 #include <linux/version.h>
+#include <linux/platform_device.h>
+#include <linux/of_irq.h>
 
 #include "img_defs.h"
 #include "servicesext.h"
@@ -64,8 +65,6 @@ static int fb_idx = 0;
 
 #define S3C_DISPLAY_FORMAT_NUM 1
 #define S3C_DISPLAY_DIM_NUM 1
-
-#define VSYNC_IRQ 0x61
 
 #define DC_S3C_LCD_COMMAND_COUNT 1
 
@@ -150,6 +149,8 @@ typedef struct S3C_LCD_DEVINFO_TAG
 static PVRSRV_DC_DISP2SRV_KMJTABLE gsPVRJTable;
 
 static S3C_LCD_DEVINFO *gpsLCDInfo;
+
+static int VSYNC_IRQ;
 
 /*****************************************************************************
  * Video-decode carveout decls
@@ -397,6 +398,15 @@ static irqreturn_t S3C_VSyncISR(int irq, void *dev_id)
 
 static IMG_VOID S3C_InstallVsyncISR(void)
 {	
+	extern struct platform_device *gpsPVRLDMDev;
+
+	VSYNC_IRQ = of_irq_get(gpsPVRLDMDev->dev.of_node, 1);
+
+	if (VSYNC_IRQ < 0) {
+		printk("S3C_InstallVsyncISR: Couldn't obtain IRQ %d", VSYNC_IRQ);
+		return;
+	}
+
 	if(request_irq(VSYNC_IRQ, S3C_VSyncISR, IRQF_SHARED , "s3cfb", gpsLCDInfo))
 	{
 		printk("S3C_InstallVsyncISR: Couldn't install system LISR on IRQ %d", VSYNC_IRQ);
@@ -933,8 +943,8 @@ int s3c_displayclass_init(void)
 		return 0;
 	}
 
-	pa_fb = psLINFBInfo->fix.smem_start;
-	va_fb = (unsigned long)phys_to_virt(psLINFBInfo->fix.smem_start);
+	pa_fb = (unsigned long) virt_to_phys(psLINFBInfo->screen_base);
+	va_fb = (unsigned long) psLINFBInfo->screen_base;
 	screen_w = psLINFBInfo->var.xres;
 	screen_h = psLINFBInfo->var.yres;
 	bits_per_pixel = psLINFBInfo->var.bits_per_pixel;

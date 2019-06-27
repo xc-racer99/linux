@@ -561,6 +561,9 @@ DoMapToUser(LinuxMemArea *psLinuxMemArea,
 	{
 	    IMG_UINT32 pfn;
 	    IMG_INT result;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,20,0))
+	    vm_fault_t vmf;
+#endif
 
 	    pfn =  LinuxMemAreaToCpuPFN(psLinuxMemArea, ui32PA);
 
@@ -568,12 +571,15 @@ DoMapToUser(LinuxMemArea *psLinuxMemArea,
 	    if (bMixedMap)
 	    {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,20,0))
-		result = vmf_insert_mixed(ps_vma, ulVMAPos, pfn_to_pfn_t(pfn));
+		vmf = vmf_insert_mixed(ps_vma, ulVMAPos, pfn_to_pfn_t(pfn));
+		if (vmf & VM_FAULT_ERROR)
+		{
+			result = vm_fault_to_errno(vmf, 0);
 #else
 		result = vm_insert_mixed(ps_vma, ulVMAPos, pfn);
-#endif
                 if(result != 0)
                 {
+#endif
                     PVR_DPF((PVR_DBG_ERROR,"%s: Error - vm_insert_mixed failed (%d)", __FUNCTION__, result));
                     return IMG_FALSE;
                 }

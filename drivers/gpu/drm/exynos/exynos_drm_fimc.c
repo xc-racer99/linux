@@ -89,6 +89,7 @@ struct fimc_scaler {
  * @regs: memory mapped io registers.
  * @lock: locking of operations.
  * @clocks: fimc clocks.
+ * @num_clocks: number of fimc clocks
  * @sc: scaler infomations.
  * @pol: porarity of writeback.
  * @id: fimc id.
@@ -107,6 +108,7 @@ struct fimc_context {
 	void __iomem	*regs;
 	spinlock_t	lock;
 	struct clk	*clocks[FIMC_CLKS_MAX];
+	int		num_clocks;
 	struct fimc_scaler	sc;
 	int	id;
 	int	irq;
@@ -1183,7 +1185,7 @@ static int fimc_setup_clocks(struct fimc_context *ctx)
 	for (i = 0; i < FIMC_CLKS_MAX; i++)
 		ctx->clocks[i] = ERR_PTR(-EINVAL);
 
-	for (i = 0; i < FIMC_CLKS_MAX; i++) {
+	for (i = 0; i < ctx->num_clocks; i++) {
 		if (i == FIMC_CLK_WB_A || i == FIMC_CLK_WB_B)
 			dev = fimc_dev->parent;
 		else
@@ -1209,6 +1211,9 @@ e_clk_free:
 int exynos_drm_check_fimc_device(struct device *dev)
 {
 	int id = of_alias_get_id(dev->of_node, "fimc");
+
+	if (!of_property_read_bool(dev->of_node, "samsung,mainscaler-ext"))
+		return -ENODEV;
 
 	if (id >= 0 && (BIT(id) & fimc_mask))
 		return 0;
@@ -1276,6 +1281,11 @@ static int fimc_probe(struct platform_device *pdev)
 
 	ctx->dev = dev;
 	ctx->id = of_alias_get_id(dev->of_node, "fimc");
+
+	if (of_device_is_compatible(dev->of_node, "samsung,s5pv210-fimc"))
+		ctx->num_clocks = 2;
+	else
+		ctx->num_clocks = FIMC_CLKS_MAX;
 
 	/* construct formats/limits array */
 	num_formats = ARRAY_SIZE(fimc_formats) + ARRAY_SIZE(fimc_tiled_formats);
@@ -1409,6 +1419,7 @@ static const struct dev_pm_ops fimc_pm_ops = {
 static const struct of_device_id fimc_of_match[] = {
 	{ .compatible = "samsung,exynos4210-fimc" },
 	{ .compatible = "samsung,exynos4212-fimc" },
+	{ .compatible = "samsung,s5pv210-fimc" },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, fimc_of_match);

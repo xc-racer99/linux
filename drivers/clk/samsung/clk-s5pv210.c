@@ -594,7 +594,7 @@ static const struct samsung_gate_clock gate_clks[] __initconst = {
 	GATE(SCLK_SPI0, "sclk_spi0", "dout_spi0", CLK_SRC_MASK0, 16,
 			CLK_SET_RATE_PARENT, 0),
 	GATE(SCLK_UART2, "sclk_uart2", "dout_uart2", CLK_SRC_MASK0, 14,
-			CLK_SET_RATE_PARENT, 0),
+			CLK_SET_RATE_PARENT | CLK_IGNORE_UNUSED, 0),
 	GATE(SCLK_UART1, "sclk_uart1", "dout_uart1", CLK_SRC_MASK0, 13,
 			CLK_SET_RATE_PARENT, 0),
 	GATE(SCLK_UART0, "sclk_uart0", "dout_uart0", CLK_SRC_MASK0, 12,

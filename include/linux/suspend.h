@@ -534,7 +534,12 @@ static inline void unlock_system_sleep(void) {}
 #ifdef CONFIG_PM_SLEEP_DEBUG
 extern bool pm_print_times_enabled;
 extern bool pm_debug_messages_on;
+#if 0
 extern __printf(2, 3) void __pm_pr_dbg(bool defer, const char *fmt, ...);
+#else
+#define __pm_pr_dbg(defer, fmt, ...) \
+	no_printk(KERN_DEBUG fmt, ##__VA_ARGS__)
+#endif
 #else
 #define pm_print_times_enabled	(false)
 #define pm_debug_messages_on	(false)

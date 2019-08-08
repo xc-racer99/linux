@@ -417,6 +417,7 @@ static ssize_t pm_debug_messages_store(struct kobject *kobj,
 
 power_attr(pm_debug_messages);
 
+#if 0
 /**
  * __pm_pr_dbg - Print a suspend debug message to the kernel log.
  * @defer: Whether or not to use printk_deferred() to print the message.
@@ -445,6 +446,7 @@ void __pm_pr_dbg(bool defer, const char *fmt, ...)
 
 	va_end(args);
 }
+#endif
 
 #else /* !CONFIG_PM_SLEEP_DEBUG */
 static inline void pm_print_times_init(void) {}

@@ -650,7 +650,7 @@
 
 	bluetooth {
 		compatible = "brcm,bcm43438-bt";
-		max-speed = <115200>;
+		max-speed = <3000000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart0_data &uart0_fctl &bt_host_wake>;
 		shutdown-gpios = <&gpb 3 GPIO_ACTIVE_HIGH>;

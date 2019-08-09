@@ -27,12 +27,14 @@
 			label = "volume_down";
 			gpios = <&gph3 2 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_VOLUMEDOWN>;
+			wakeup-source;
 		};
 
 		vol-up {
 			label = "volume_up";
 			gpios = <&gph3 1 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_VOLUMEUP>;
+			wakeup-source;
 		};
 	};
 };

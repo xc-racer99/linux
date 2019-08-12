@@ -173,6 +173,16 @@ static int wm8994_suspend(struct device *dev)
 		return ret;
 	}
 
+	/*
+	 * On devices where only some of the regulators can be disabled,
+	 * the device needs a bit of time to settle before enabling the
+	 * regulators again.  Here is an ideal time to do that.
+	 *
+	 * This value was taken from a vendor kernel and is probably
+	 * overly conservative.
+	 */
+	msleep(125);
+
 	return 0;
 }
 

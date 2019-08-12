@@ -85,23 +85,17 @@
 			"IN1LN", "Main Mic",
 
 			"IN1RP", "Headset Mic",
-			"IN1RN", "Headset Mic",
-
-			"Modem In", "AIN",
-			"Modem Out", "AOUT",
-
-			"Bluetooth Mic", "RX",
-			"Bluetooth Speaker", "TX";
+			"IN1RN", "Headset Mic";
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&headset_det &micbias_gpios>;
 
 		cpu {
-			sound-dai = <&i2s0>, <&modem_codec>, <&bt_codec>;
+			sound-dai = <&i2s0>;
 		};
 
 		codec {
-			sound-dai = <&wm8994>, <&wm8994>, <&wm8994>;
+			sound-dai = <&wm8994>;
 		};
 	};
 };

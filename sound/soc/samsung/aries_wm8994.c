@@ -202,8 +202,8 @@ static const struct snd_kcontrol_new aries_controls[] = {
 	SOC_DAPM_PIN_SWITCH("Modem In"),
 	SOC_DAPM_PIN_SWITCH("Modem Out"),
 
-	SOC_DAPM_PIN_SWITCH("Bluetooth Mic"),
-	SOC_DAPM_PIN_SWITCH("Bluetooth Speaker"),
+	SOC_DAPM_PIN_SWITCH("Bluetooth In"),
+	SOC_DAPM_PIN_SWITCH("Bluetooth Out"),
 };
 
 static const struct snd_soc_dapm_widget aries_dapm_widgets[] = {
@@ -218,12 +218,6 @@ static const struct snd_soc_dapm_widget aries_dapm_widgets[] = {
 	SND_SOC_DAPM_MIC("Headset Mic", aries_headset_bias),
 
 	SND_SOC_DAPM_LINE("FM In", NULL),
-
-	SND_SOC_DAPM_LINE("Modem In", NULL),
-	SND_SOC_DAPM_LINE("Modem Out", NULL),
-
-	SND_SOC_DAPM_MIC("Bluetooth Mic", NULL),
-	SND_SOC_DAPM_SPK("Bluetooth Speaker", NULL),
 };
 
 static int aries_hw_params(struct snd_pcm_substream *substream,
@@ -382,17 +376,66 @@ static const struct snd_soc_pcm_stream bluetooth_params = {
 	.channels_max = 2,
 };
 
+static const struct snd_soc_component_driver aries_component = {
+	.name	= "aries-audio",
+};
+
+static struct snd_soc_dai_driver aries_ext_dai[] = {
+	{
+		.name = "Voice call",
+		.playback = {
+			.stream_name = "Modem Out",
+			.channels_min = 1,
+			.channels_max = 1,
+			.rate_min = 8000,
+			.rate_max = 8000,
+			.rates = SNDRV_PCM_RATE_8000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.capture = {
+			.stream_name = "Modem In",
+			.channels_min = 1,
+			.channels_max = 1,
+			.rate_min = 8000,
+			.rate_max = 8000,
+			.rates = SNDRV_PCM_RATE_8000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+	},
+	{
+		.name = "Bluetooth",
+		.playback = {
+			.stream_name = "Bluetooth Out",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rate_min = 8000,
+			.rate_max = 8000,
+			.rates = SNDRV_PCM_RATE_8000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.capture = {
+			.stream_name = "Bluetooth In",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rate_min = 8000,
+			.rate_max = 8000,
+			.rates = SNDRV_PCM_RATE_8000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+	},
+};
+
 SND_SOC_DAILINK_DEFS(aif1,
 	DAILINK_COMP_ARRAY(COMP_EMPTY()),
 	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, "wm8994-aif1")),
 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
 
 SND_SOC_DAILINK_DEFS(baseband,
-	DAILINK_COMP_ARRAY(COMP_EMPTY()),
+	DAILINK_COMP_ARRAY(COMP_CPU("Voice call")),
 	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, "wm8994-aif2")));
 
 SND_SOC_DAILINK_DEFS(bluetooth,
-	DAILINK_COMP_ARRAY(COMP_EMPTY()),
+	DAILINK_COMP_ARRAY(COMP_CPU("Bluetooth")),
 	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, "wm8994-aif3")));
 
 static struct snd_soc_dai_link aries_dai[] = {
@@ -532,26 +575,32 @@ static int aries_audio_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	for_each_card_prelinks(card, i, dai_link) {
-		dai_link->cpus->of_node = of_parse_phandle(cpu,
-				"sound-dai", i);
-		if (!dai_link->cpus->of_node) {
-			ret = -EINVAL;
-			goto out;
-		}
-
 		dai_link->codecs->of_node = of_parse_phandle(codec,
-				"sound-dai", i);
+				"sound-dai", 0);
 		if (!dai_link->codecs->of_node) {
 			ret = -EINVAL;
 			goto out;
 		}
 	}
 
-	/* platforms needs to be set for first link only */
+	/* Set CPUs and platforms of_node for main DAI */
+	aries_dai[0].cpus->of_node = of_parse_phandle(cpu,
+			"sound-dai", 0);
+	if (!aries_dai[0].cpus->of_node) {
+		ret = -EINVAL;
+		goto out;
+	}
+
 	aries_dai[0].platforms->of_node = aries_dai[0].cpus->of_node;
 
-	ret = devm_snd_soc_register_card(dev, card);
+	ret = devm_snd_soc_register_component(dev, &aries_component,
+				aries_ext_dai, ARRAY_SIZE(aries_ext_dai));
+	if (ret < 0) {
+		dev_err(dev, "Failed to register component: %d\n", ret);
+		goto out;
+	}
 
+	ret = devm_snd_soc_register_card(dev, card);
 	if (ret)
 		dev_err(dev, "snd_soc_register_card() failed:%d\n", ret);
 

@@ -3,6 +3,7 @@
 #include <linux/iio/consumer.h>
 #include <linux/iio/iio.h>
 #include <linux/input-event-codes.h>
+#include <linux/mfd/wm8994/registers.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -150,6 +151,44 @@ static struct snd_soc_jack_gpio headset_button_gpio[] = {
 	},
 };
 
+static int aries_spk_cfg(struct snd_soc_dapm_widget *w,
+			struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_card *card = w->dapm->card;
+	struct snd_soc_pcm_runtime *rtd;
+	struct snd_soc_component *component;
+	int ret = 0;
+
+	rtd = snd_soc_get_pcm_runtime(card, card->dai_link[0].name);
+	component = rtd->codec_dai->component;
+
+	pr_err("component name is %s", component->name);
+
+
+	/**
+	 * We have an odd setup - the SPKMODE pin is pulled up so
+	 * we only have access to the left side SPK configs,
+	 * but SPKOUTR isn't bridged so when playing back in
+	 * stereo, we only get the left hand channel.  The only
+	 * option we're left with is to force the AIF into mono
+	 * mode.
+	 */
+	switch (event) {
+	case SND_SOC_DAPM_POST_PMU:
+		ret = snd_soc_component_update_bits(component,
+				WM8994_AIF1_DAC1_FILTERS_1,
+				WM8994_AIF1DAC1_MONO, WM8994_AIF1DAC1_MONO);
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+		ret = snd_soc_component_update_bits(component,
+				WM8994_AIF1_DAC1_FILTERS_1,
+				WM8994_AIF1DAC1_MONO, 0);
+		break;
+	}
+
+	return ret;
+}
+
 static int aries_main_bias(struct snd_soc_dapm_widget *w,
 			  struct snd_kcontrol *kcontrol, int event)
 {
@@ -209,7 +248,7 @@ static const struct snd_kcontrol_new aries_controls[] = {
 static const struct snd_soc_dapm_widget aries_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("HP", NULL),
 
-	SND_SOC_DAPM_SPK("SPK", NULL),
+	SND_SOC_DAPM_SPK("SPK", aries_spk_cfg),
 	SND_SOC_DAPM_SPK("RCV", NULL),
 
 	SND_SOC_DAPM_LINE("LINE", NULL),

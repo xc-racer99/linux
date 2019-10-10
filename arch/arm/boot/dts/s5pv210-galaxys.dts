@@ -64,6 +64,150 @@
 		};
 	};
 
+	thermal-zones {
+		batt_thermal: batt-thermal {
+			polling-delay-passive = <60000>; /* 60 seconds */
+			polling-delay = <600000>; /* 600 seconds */
+
+			thermal-sensors = <&batt_thermistor>;
+		};
+	};
+
+	batt_thermistor: thermal-sensor-0 {
+		compatible = "generic-adc-thermal";
+		#thermal-sensor-cells = <0>;
+		io-channels = <&adc 6>;
+		io-channel-names = "sensor-channel";
+
+		temperature-lookup-table = <
+			(-7000) 1667
+			(-6000) 1658
+			(-5000) 1632
+			(-4000) 1619
+			(-3000) 1614
+			(-2000) 1596
+			(-1000) 1577
+			0 1559
+			1000 1536
+			2000 1513
+			3000 1491
+			4000 1468
+			5000 1445
+			6000 1421
+			7000 1396
+			8000 1372
+			9000 1348
+			10000 1324
+			11000 1299
+			12000 1275
+			13000 1251
+			14000 1226
+			15000 1202
+			16000 1178
+			17000 1155
+			18000 1131
+			19000 1108
+			20000 1084
+			21000 1060
+			22000 1037
+			23000 1013
+			24000 990
+			25000 966
+			26000 943
+			27000 920
+			28000 898
+			29000 875
+			30000 852
+			31000 829
+			32000 806
+			33000 784
+			34000 761
+			35000 738
+			36000 718
+			37000 697
+			38000 677
+			39000 656
+			40000 636
+			41000 615
+			42000 595
+			43000 574
+			44000 554
+			45000 533
+			46000 518
+			47000 503
+			48000 487
+			49000 472
+			50000 457
+			51000 442
+			52000 427
+			53000 411
+			54000 396
+			55000 381
+			56000 368
+			57000 354
+			58000 341
+			59000 324
+			60000 306
+			61000 299
+			62000 293
+			63000 286
+			64000 275
+			65000 264>;
+	};
+
+	charger_manager: charger-manager@0 {
+		compatible = "charger-manager";
+
+		cm-name = "cm-battery";
+
+		chg-reg-supply = <&charger_reg>;
+
+		/* poll when externally connected */
+		cm-poll-mode = <2>;
+		cm-poll-interval = <30>;
+
+		/* read supply status for status */
+		cm-battery-stat = <0>;
+
+		cm-battery-temp-diff = <5>;
+		cm-battery-hot = <6300>;
+		cm-battery-cold = <400>;
+		cm-battery-cold-in-minus;
+
+		/* 6hr max charging time */
+		cm-charging-max = <21600000>;
+		/* 1.5hr max discharging time */
+		cm-discharging-max = <5400000>;
+
+		cm-fuel-gauge = "battery";
+
+		cm-fullbatt-voltage = <4176000>;
+		cm-fullbatt-vchkdrop-ms = <30000>;
+		cm-fullbatt-vchkdrop-volt = <176000>;
+		cm-fullbatt-soc = <92>;
+
+		cm-num-chargers = <1>;
+		cm-chargers = "max8998_pmic";
+
+		cm-thermal-zone = "batt-thermal";
+
+		regulator@0 {
+			cm-regulator-name = "chg-reg";
+			cable@0 {
+				cm-cable-name = "USB";
+				cm-cable-extcon = "7-0025";
+				cm-cable-min = <475000>;
+				cm-cable-max = <500000>;
+			};
+			cable@1 {
+				cm-cable-name = "TA";
+				cm-cable-extcon = "7-0025";
+				cm-cable-min = <380000>;
+				cm-cable-max = <600000>;
+			};
+		};
+	};
+
 	i2c_fmradio: i2c-gpio-6 {
 		compatible = "i2c-gpio";
 		sda-gpios = <&gpd1 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;

@@ -18,6 +18,7 @@
 		i2c9 = &i2c_fuel;
 		i2c10 = &i2c_touchkey;
 		i2c11 = &i2c_gp2a;
+		i2c12 = &i2c_yas529;
 	};
 
 	memory@30000000 {
@@ -498,6 +499,28 @@
 		};
 	};
 
+	i2c_yas529: i2c-gpio-10 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpj0 1 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpj0 0 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&yas529_i2c_pins>;
+
+		yas529@2e {
+			compatible = "yamaha,yas529";
+			reg = <0x2e>;
+
+			resetn-gpios = <&gpb 1 GPIO_ACTIVE_HIGH>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&yas529_reset>;
+		};
+	};
+
 	modem: modem {
 		compatible = "samsung,onedram";
 
@@ -628,6 +651,13 @@
 };
 
 &pinctrl0 {
+	yas529_reset: yas529-reset {
+		samsung,pins = "gpb-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
 	wlan_bt_en: wlan-bt-en {
 		samsung,pins = "gpb-5";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
@@ -708,6 +738,13 @@
 		samsung,pins = "gph3-5";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+	};
+
+	yas529_i2c_pins: yas529-i2c-pins {
+		samsung,pins = "gpj0-0", "gpj0-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};
 
 	ts_irq: ts-irq {

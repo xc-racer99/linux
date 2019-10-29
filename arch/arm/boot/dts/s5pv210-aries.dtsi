@@ -530,9 +530,15 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&magnetometer_i2c_pins>;
 
-		status = "disabled";
+		yas529@2e {
+			compatible = "yamaha,yas529";
+			reg = <0x2e>;
 
-		/* Yamaha yas529 magnetometer, no mainline binding */
+			resetn-gpios = <&gpb 1 GPIO_ACTIVE_HIGH>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&yas529_reset>;
+		};
 	};
 
 	modem {
@@ -838,6 +844,13 @@
 &pinctrl0 {
 	s5ka3dfx_pwr: s5ka3dfx-pwr {
 		samsung,pins = "gpb-0", "gpb-2";
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	yas529_reset: yas529-reset {
+		samsung,pins = "gpb-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};

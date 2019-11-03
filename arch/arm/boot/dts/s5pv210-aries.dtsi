@@ -214,7 +214,7 @@
 		gpio = <&gpj1 1 GPIO_ACTIVE_HIGH>;
 	};
 
-	s5ka3dfx_isp_host_pwr: regulator-fixed-1 {
+	isp_host_pwr: regulator-fixed-1 {
 		compatible = "regulator-fixed";
 		regulator-name = "vga_isp_sys";
 		enable-active-high;
@@ -730,8 +730,25 @@
 
 		/* camera A input */
 		port@1 {
+		        #address-cells = <1>;
+		        #size-cells = <0>;
 			reg = <1>;
-			fimc0_ep: endpoint {
+
+			cam_a_ep1: endpoint@0 {
+				reg = <0>;
+
+				remote-endpoint = <&ce147_ep>;
+				bus-type = <5>; /* Parallel */
+				bus-width = <8>;
+				field-even-active = <1>;
+				hsync-active = <1>;
+				vsync-active = <0>;
+				pclk-sample = <1>;
+			};
+
+			cam_a_ep2: endpoint@1 {
+				reg = <1>;
+
 				remote-endpoint = <&s5ka3dfx_ep>;
 				bus-type = <5>; /* Parallel */
 				bus-width = <8>;
@@ -803,6 +820,41 @@
 	samsung,i2c-slave-addr = <0x10>;
 	status = "okay";
 
+	ce147: sensor@3c {
+		compatible = "nec,ce147";
+		reg = <0x3c>;
+
+		clocks = <&camera 0>;
+		clock-names = "mclk";
+
+		isp_core-supply = <&buck4_reg>;
+		isp_host-supply = <&ldo15_reg>;
+		isp_sys-supply = <&isp_host_pwr>;
+		af-supply = <&ldo11_reg>;
+		sensor-supply = <&ldo12_reg>;
+		vddio-supply = <&ldo13_reg>;
+		dvdd-supply = <&ldo14_reg>;
+		avdd-supply = <&ldo16_reg>;
+
+		nreset-gpios = <&gpj1 5 GPIO_ACTIVE_HIGH>;
+		ena-gpios = <&gpj0 6 GPIO_ACTIVE_HIGH>;
+
+		assigned-clocks = <&clocks MOUT_CAM0>, <&clocks DOUT_CAM0>;
+		assigned-clock-parents = <&xusbxti>;
+		assigned-clock-rates = <0>, <24000000>;
+
+		port {
+			ce147_ep: endpoint {
+				remote-endpoint = <&cam_a_ep1>;
+				bus-type = <5>; /* Parallel */
+				bus-width = <8>;
+				hsync-active = <0>;
+				vsync-active = <1>;
+				pclk-sample = <1>;
+			};
+		};
+	};
+
 	s5ka3dfx: sensor@62 {
 		compatible = "samsung,s5ka3dfx";
 		reg = <0x62>;
@@ -811,7 +863,7 @@
 		clock-names = "mclk";
 
 		vddio-supply = <&ldo13_reg>;
-		isp_sys-supply = <&s5ka3dfx_isp_host_pwr>;
+		isp_sys-supply = <&isp_host_pwr>;
 		dvdd-supply = <&ldo14_reg>;
 		isp_host-supply = <&ldo15_reg>;
 
@@ -824,7 +876,7 @@
 
 		port {
 			s5ka3dfx_ep: endpoint {
-				remote-endpoint = <&fimc0_ep>;
+				remote-endpoint = <&cam_a_ep2>;
 				bus-type = <5>; /* Parallel */
 				bus-width = <8>;
 				hsync-active = <0>;

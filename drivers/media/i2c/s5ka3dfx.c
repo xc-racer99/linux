@@ -1096,7 +1096,7 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 		goto np_err;
 	}
 
-	info->gpio_nstby = devm_gpiod_get(&client->dev,
+	info->gpio_nstby = devm_gpiod_get_optional(&client->dev,
 			"nstandby", GPIOD_OUT_HIGH);
 	if (IS_ERR(info->gpio_nstby)) {
 		ret = PTR_ERR(info->gpio_nstby);
@@ -1137,7 +1137,7 @@ static int s5ka3dfx_probe(struct i2c_client *client,
 	if (ret < 0)
 		goto np_err;
 
-	dev_info(&client->dev, "s5ka3dfx: successfully probed");
+	dev_info(&client->dev, "successfully probed");
 
 	return 0;
 

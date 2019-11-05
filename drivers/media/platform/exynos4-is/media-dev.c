@@ -991,7 +991,8 @@ static int fimc_md_create_links(struct fimc_md *fmd)
 
 		case FIMC_BUS_TYPE_ITU_601...FIMC_BUS_TYPE_ITU_656:
 			source = &sensor->entity;
-			pad = 0;
+			/* Assume the last pad is the source */
+			pad = sensor->entity.num_pads - 1;
 			break;
 
 		default:

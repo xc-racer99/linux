@@ -397,17 +397,20 @@ static void fimc_md_pipelines_free(struct fimc_md *fmd)
 /* Parse port node and register as a sub-device any sensor specified there. */
 static int fimc_md_parse_port_node(struct fimc_md *fmd,
 				   struct device_node *port,
-				   unsigned int index)
+				   unsigned int *index)
 {
-	struct fimc_source_info *pd = &fmd->sensor[index].pdata;
+	struct fimc_source_info *pd;
 	struct device_node *rem, *ep, *np;
-	struct v4l2_fwnode_endpoint endpoint = { .bus_type = 0 };
+	struct v4l2_fwnode_endpoint endpoint;
 	int ret;
 
-	/* Assume here a port node can have only one endpoint node. */
 	ep = of_get_next_child(port, NULL);
 	if (!ep)
 		return 0;
+
+parse_sensor:
+	pd = &fmd->sensor[*index].pdata;
+	endpoint.bus_type = 0;
 
 	ret = v4l2_fwnode_endpoint_parse(of_fwnode_handle(ep), &endpoint);
 	if (ret) {
@@ -415,7 +418,7 @@ static int fimc_md_parse_port_node(struct fimc_md *fmd,
 		return ret;
 	}
 
-	if (WARN_ON(endpoint.base.port == 0) || index >= FIMC_MAX_SENSORS) {
+	if (WARN_ON(endpoint.base.port == 0) || *index >= FIMC_MAX_SENSORS) {
 		of_node_put(ep);
 		return -EINVAL;
 	}
@@ -462,22 +465,29 @@ static int fimc_md_parse_port_node(struct fimc_md *fmd,
 		pd->fimc_bus_type = pd->sensor_bus_type;
 	of_node_put(np);
 
-	if (WARN_ON(index >= ARRAY_SIZE(fmd->sensor))) {
+	if (WARN_ON(*index >= ARRAY_SIZE(fmd->sensor))) {
 		of_node_put(rem);
 		return -EINVAL;
 	}
 
-	fmd->sensor[index].asd.match_type = V4L2_ASYNC_MATCH_FWNODE;
-	fmd->sensor[index].asd.match.fwnode = of_fwnode_handle(rem);
+	fmd->sensor[*index].asd.match_type = V4L2_ASYNC_MATCH_FWNODE;
+	fmd->sensor[*index].asd.match.fwnode = of_fwnode_handle(rem);
 
 	ret = v4l2_async_notifier_add_subdev(&fmd->subdev_notifier,
-					     &fmd->sensor[index].asd);
+					     &fmd->sensor[*index].asd);
 	if (ret) {
 		of_node_put(rem);
 		return ret;
 	}
 
 	fmd->num_sensors++;
+
+	/* Check for additional sensors on same port */
+	ep = of_get_next_child(port, ep);
+	if (ep) {
+		(*index)++;
+		goto parse_sensor;
+	}
 
 	return 0;
 }
@@ -515,7 +525,7 @@ static int fimc_md_register_sensor_entities(struct fimc_md *fmd)
 		if (!port)
 			continue;
 
-		ret = fimc_md_parse_port_node(fmd, port, index);
+		ret = fimc_md_parse_port_node(fmd, port, &index);
 		of_node_put(port);
 		if (ret < 0) {
 			of_node_put(node);
@@ -530,7 +540,7 @@ static int fimc_md_register_sensor_entities(struct fimc_md *fmd)
 		goto rpm_put;
 
 	for_each_child_of_node(ports, node) {
-		ret = fimc_md_parse_port_node(fmd, node, index);
+		ret = fimc_md_parse_port_node(fmd, node, &index);
 		if (ret < 0) {
 			of_node_put(node);
 			goto cleanup;

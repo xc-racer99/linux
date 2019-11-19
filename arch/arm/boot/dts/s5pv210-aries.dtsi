@@ -57,7 +57,7 @@
 		power-off-delay-us = <500>;
 	};
 
-	i2c_pmic: i2c-gpio-0 {
+	i2c_pmic: i2c-gpio-4 {
 		compatible = "i2c-gpio";
 		sda-gpios = <&gpj4 0 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 		scl-gpios = <&gpj4 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
@@ -306,7 +306,7 @@
 		};
 	};
 
-	i2c_fuel: i2c-gpio-1 {
+	i2c_fuel: i2c-gpio-7 {
 		compatible = "i2c-gpio";
 		sda-gpios = <&mp05 1 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 		scl-gpios = <&mp05 0 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;

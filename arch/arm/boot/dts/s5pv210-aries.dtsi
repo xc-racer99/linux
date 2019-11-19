@@ -12,6 +12,7 @@
 	compatible = "samsung,aries", "samsung,s5pv210";
 
 	aliases {
+		i2c5 = &i2c_accel;
 		i2c6 = &i2c_pmic;
 		i2c7 = &i2c_musb;
 		i2c9 = &i2c_fuel;
@@ -72,6 +73,23 @@
 		pinctrl-0 = <&wlan_gpio_rst>;
 		post-power-on-delay-ms = <500>;
 		power-off-delay-us = <500>;
+	};
+
+	i2c_accel: i2c-gpio-3 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpj3 6 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpj3 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&accel_i2c_pins>;
+
+		accelermoter@38 {
+			compatible = "bosch,bma023";
+			reg = <0x38>;
+		};
 	};
 
 	i2c_pmic: i2c-gpio-4 {
@@ -581,6 +599,12 @@
 
 	musb_i2c_pins: musb-i2c-pins {
 		samsung,pins = "gpj3-4", "gpj3-5";
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	accel_i2c_pins: accel-i2c-pins {
+		samsung,pins = "gpj3-6", "gpj3-7";
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};

@@ -17,6 +17,7 @@
 		i2c7 = &i2c_musb;
 		i2c9 = &i2c_fuel;
 		i2c10 = &i2c_touchkey;
+		i2c11 = &i2c_gp2a;
 	};
 
 	memory@30000000 {
@@ -64,6 +65,16 @@
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&touchkey_vdd_ena>;
+	};
+
+	gp2a_vled: regulator-fixed-4 {
+		compatible = "regulator-fixed";
+		regulator-name = "VLED";
+		enable-active-high;
+		gpio = <&gpj1 4 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&gp2a_power>;
 	};
 
 	wifi_pwrseq: wifi-pwrseq {
@@ -461,6 +472,32 @@
 		};
 	};
 
+	i2c_gp2a: i2c-gpio-9 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpg2 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpg0 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&gp2a_i2c_pins>;
+
+		gp2a@44 {
+			compatible = "sharp,gp2ap002a00f";
+			reg = <0x44>;
+			vout-gpio = <&gph0 2 GPIO_ACTIVE_LOW>;
+			vled-supply = <&gp2a_vled>;
+			io-channels = <&adc 9>;
+			io-channel-names = "light";
+
+			wakeup-source;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&gp2a_irq>;
+		};
+	};
+
 	modem: modem {
 		compatible = "samsung,onedram";
 
@@ -604,10 +641,24 @@
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 	};
 
+	gp2a_i2c_pins: gp2a-i2c-pins {
+		samsung,pins = "gpg0-2", "gpg2-2";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
 	wlan_gpio_rst: wlan-gpio-rst {
 		samsung,pins = "gpg1-2";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+	};
+
+	gp2a_irq: gp2a-irq {
+		samsung,pins = "gph0-2";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_F>;
+		samsung,pin-pud = <S3C64XX_PIN_PULL_DOWN>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};
 
 	pmic_dvs_pins: pmic-dvs-pins {
@@ -668,6 +719,13 @@
 
 	vibrator_ena: vibrator-ena {
 		samsung,pins = "gpj1-1";
+		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
+	};
+
+	gp2a_power: gp2a-power {
+		samsung,pins = "gpj1-4";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <S3C64XX_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS4_PIN_DRV_LV1>;
 	};

@@ -137,6 +137,11 @@
 				<&clocks CLK_G3D>, <&clocks CLK_MFC>;
 		};
 
+		cpuidle: cpuidle {
+			compatible = "samsung,s5pv210-cpuidle";
+			regmap = <&pmu_syscon>;
+		};
+
 		pinctrl0: pinctrl@e0200000 {
 			compatible = "samsung,s5pv210-pinctrl";
 			reg = <0xe0200000 0x1000>;

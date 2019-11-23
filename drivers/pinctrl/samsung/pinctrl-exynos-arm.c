@@ -34,21 +34,45 @@ static const struct samsung_pin_bank_type bank_type_alive = {
 
 /* Retention control for S5PV210 are located at the end of clock controller */
 #define S5P_OTHERS 0xE000
+#define S5P_NORMAL_CFG 0xC010
 
 #define S5P_OTHERS_RET_IO		(1 << 31)
 #define S5P_OTHERS_RET_CF		(1 << 30)
 #define S5P_OTHERS_RET_MMC		(1 << 29)
 #define S5P_OTHERS_RET_UART		(1 << 28)
 
+#define S5PV210_PD_AUDIO		(1 << 7)
+
 static void s5pv210_retention_disable(struct samsung_pinctrl_drv_data *drvdata)
 {
 	void __iomem *clk_base = (void __iomem *)drvdata->retention_ctrl->priv;
 	u32 tmp;
+	bool audio_domain_on;
+
+	/**
+	 * Because of a HW design fault in audio logic, audio block should be
+	 * on during retention release, otherwise 100uA of leakage current is
+	 * added in the next sleep cycle
+	 */
+	tmp = __raw_readl(clk_base + S5P_NORMAL_CFG);
+	if (tmp & S5PV210_PD_AUDIO) {
+		audio_domain_on = 1;
+	} else {
+		audio_domain_on = 0;
+		tmp |= S5PV210_PD_AUDIO;
+		__raw_writel(tmp, clk_base + S5P_NORMAL_CFG);
+	}
 
 	tmp = __raw_readl(clk_base + S5P_OTHERS);
 	tmp |= (S5P_OTHERS_RET_IO | S5P_OTHERS_RET_CF | S5P_OTHERS_RET_MMC |
 		S5P_OTHERS_RET_UART);
 	__raw_writel(tmp, clk_base + S5P_OTHERS);
+
+	if (!audio_domain_on) {
+		tmp = __raw_readl(clk_base + S5P_NORMAL_CFG);
+		tmp &= ~S5PV210_PD_AUDIO;
+		__raw_writel(tmp, clk_base + S5P_NORMAL_CFG);
+	}
 }
 
 static struct samsung_retention_ctrl *

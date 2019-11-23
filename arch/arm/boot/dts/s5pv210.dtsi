@@ -18,6 +18,7 @@
 
 #include <dt-bindings/clock/s5pv210.h>
 #include <dt-bindings/clock/s5pv210-audss.h>
+#include <dt-bindings/power/s5pv210-power.h>
 
 / {
 	#address-cells = <1>;
@@ -112,6 +113,28 @@
 				compatible = "samsung-s5pv210-pmu", "syscon";
 				reg = <0xe0108000 0x8000>;
 			};
+		};
+
+		pd: power-domain {
+			compatible = "samsung,s5pv210-pd";
+			samsung,pmureg-phandle = <&pmu_syscon>;
+			#power-domain-cells = <1>;
+			clock-names = "i2s_audss", "fimc0",
+				"fimc1", "fimc2",
+				"sclk_csis", "jpeg",
+				"rot", "vp",
+				"mixer", "tvenc",
+				"hdmi", "lcd",
+				"dsim", "g2d",
+				"g3d", "mfc";
+			clocks = <&clk_audss CLK_I2S>, <&clocks CLK_FIMC0>,
+				<&clocks CLK_FIMC1>, <&clocks CLK_FIMC2>,
+				<&clocks SCLK_CSIS>, <&clocks CLK_JPEG>,
+				<&clocks CLK_ROTATOR>, <&clocks CLK_VP>,
+				<&clocks CLK_MIXER>, <&clocks CLK_TVENC>,
+				<&clocks CLK_HDMI>, <&clocks CLK_FIMD>,
+				<&clocks CLK_DSIM>, <&clocks CLK_G2D>,
+				<&clocks CLK_G3D>, <&clocks CLK_MFC>;
 		};
 
 		pinctrl0: pinctrl@e0200000 {
@@ -275,6 +298,9 @@
 				pinctrl-names = "default";
 				pinctrl-0 = <&i2s0_bus>;
 				#sound-dai-cells = <0>;
+
+				power-domains = <&pd S5PV210_PD_AUDIO>;
+
 				status = "disabled";
 			};
 		};
@@ -291,6 +317,9 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2s1_bus>;
 			#sound-dai-cells = <0>;
+
+			power-domains = <&pd S5PV210_PD_AUDIO>;
+
 			status = "disabled";
 		};
 
@@ -306,6 +335,9 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2s2_bus>;
 			#sound-dai-cells = <0>;
+
+			power-domains = <&pd S5PV210_PD_AUDIO>;
+
 			status = "disabled";
 		};
 
@@ -493,6 +525,7 @@
 			interrupts = <14>;
 			clocks = <&clocks DOUT_MFC>, <&clocks CLK_MFC>;
 			clock-names = "sclk_mfc", "mfc";
+			power-domains = <&pd S5PV210_PD_MFC>;
 		};
 
 		vic0: interrupt-controller@f2000000 {
@@ -531,6 +564,9 @@
 			interrupts = <0>, <1>, <2>;
 			clocks = <&clocks SCLK_FIMD>, <&clocks CLK_FIMD>;
 			clock-names = "sclk_fimd", "fimd";
+
+			power-domains = <&pd S5PV210_PD_LCD>;
+
 			status = "disabled";
 		};
 
@@ -551,6 +587,8 @@
 			interrupts = <9>;
 			clocks = <&clocks DOUT_G2D>, <&clocks CLK_G2D>;
 			clock-names = "sclk_fimg2d", "fimg2d";
+
+			power-domains = <&pd S5PV210_PD_LCD>;
 		};
 
 		mdma1: mdma@fa200000 {
@@ -572,6 +610,8 @@
 			interrupts = <4>;
 			clocks = <&clocks CLK_ROTATOR>;
 			clock-names = "rotator";
+
+			power-domains = <&pd S5PV210_PD_CAM>;
 		};
 
 		i2c1: i2c@fab00000 {
@@ -613,6 +653,8 @@
 				status = "disabled";
 				#address-cells = <1>;
 				#size-cells = <0>;
+
+				power-domains = <&pd S5PV210_PD_CAM>;
 			};
 
 			fimc0: fimc@fb200000 {
@@ -627,6 +669,8 @@
 				samsung,pix-limits = <4224 8192 1920 4224>;
 				samsung,min-pix-alignment = <16 8>;
 				samsung,cam-if;
+
+				power-domains = <&pd S5PV210_PD_CAM>;
 			};
 
 			fimc1: fimc@fb300000 {
@@ -642,6 +686,8 @@
 				samsung,min-pix-alignment = <1 1>;
 				samsung,pix-limits = <4224 8192 1920 4224>;
 				samsung,cam-if;
+
+				power-domains = <&pd S5PV210_PD_CAM>;
 			};
 
 			fimc2: fimc@fb400000 {
@@ -657,6 +703,8 @@
 				samsung,min-pix-alignment = <16 8>;
 				samsung,rotators = <0>;
 				samsung,cam-if;
+
+				power-domains = <&pd S5PV210_PD_CAM>;
 			};
 		};
 
@@ -667,6 +715,8 @@
 			interrupts = <8>;
 			clocks = <&clocks CLK_JPEG>;
 			clock-names = "jpeg";
+
+			power-domains = <&pd S5PV210_PD_CAM>;
 		};
 	};
 };

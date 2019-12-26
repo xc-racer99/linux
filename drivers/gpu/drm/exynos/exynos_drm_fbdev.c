@@ -106,6 +106,7 @@ static int exynos_drm_fbdev_update(struct drm_fb_helper *helper,
 	fbi->screen_base = exynos_gem->kvaddr + offset;
 	fbi->screen_size = size;
 	fbi->fix.smem_len = size;
+	fbi->fix.smem_start = exynos_drm_fb_dma_addr(fb, 0);
 
 	return 0;
 }

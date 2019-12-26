@@ -799,6 +799,7 @@ PVRSRV_ERROR FreeMemCallBackCommon(PVRSRV_KERNEL_MEM_INFO *psMemInfo,
 			
 			case PVRSRV_MEMTYPE_WRAPPED:
 				freeWrapped(psMemInfo);
+				/* fall through */
 			case PVRSRV_MEMTYPE_DEVICE:
 			case PVRSRV_MEMTYPE_DEVICECLASS:
 				if (psMemInfo->psKernelSyncInfo)

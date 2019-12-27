@@ -37,7 +37,11 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22) && LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0))
 #include <asm/system.h>
 #endif
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0))
 #include <asm/cacheflush.h>
+#else
+#include "../../../../arch/arm/mm/dma.h"
+#endif
 #include <linux/mm.h>
 #include <linux/pagemap.h>
 #include <linux/hugetlb.h> 

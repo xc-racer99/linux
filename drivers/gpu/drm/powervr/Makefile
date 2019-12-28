@@ -16,7 +16,7 @@ ccflags-y := \
 	-Os
 
 ccflags-y += -DLINUX -D__linux__ -DANDROID
-ccflags-y += -Idrivers/gpu/drm/powervr
+ccflags-y += -I$(srctree)/drivers/gpu/drm/powervr
 
 ccflags-y += \
 	-DSUPPORT_SGX_NEW_STATUS_VALS \
@@ -34,7 +34,7 @@ ccflags-y += \
 	-DSUPPORT_MEMINFO_IDS \
 	-DSYS_SGX_ACTIVE_POWER_LATENCY_MS=100 \
 	-DPVRSRV_MODNAME="\"pvrsrvkm\"" \
-	-Idrivers/gpu/drm/powervr/sgx \
+	-I$(srctree)/drivers/gpu/drm/powervr/sgx \
 	-DSUPPORT_GET_DC_BUFFERS_SYS_PHYADDRS \
 	-DPVRSRV_MMU_MAKE_READWRITE_ON_DEMAND \
 	-DPVRSRV_AVOID_RANGED_INVALIDATE \
@@ -114,7 +114,7 @@ pvrsrvkm-y := \
 
 ccflags-$(CONFIG_ARCH_S5PV210) += \
 	-DPVR_BUILD_DIR="\"smdkc110_android\"" \
-	-Idrivers/gpu/drm/powervr/s5pc110 \
+	-I$(srctree)/drivers/gpu/drm/powervr/s5pc110 \
 	-DPVR_LDM_DEVICE_TREE \
 	-DSYS_SGX_DEV_NAME="\"samsung,s5pc110-sgx540\"" \
 	-DSGX540 -DSUPPORT_SGX540 \

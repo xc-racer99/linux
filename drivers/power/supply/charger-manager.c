@@ -1251,16 +1251,15 @@ static int charger_extcon_init(struct charger_manager *cm,
 		return -EINVAL;
 	}
 
+	cable->extcon_type = extcon_type;
+
 	ret = devm_extcon_register_notifier(cm->dev, cable->extcon_dev,
-		extcon_type, &cable->nb);
+		cable->extcon_type, &cable->nb);
 	if (ret < 0) {
 		pr_err("Cannot register extcon_dev for %s (cable: %s)\n",
 			cable->extcon_name, cable->name);
 		return ret;
 	}
-
-	if (extcon_get_state(cable->extcon_dev, extcon_type) > 0)
-		cable->attached = true;
 
 	return 0;
 }
@@ -1279,6 +1278,7 @@ static int charger_manager_register_extcon(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
 	struct charger_regulator *charger;
+	unsigned long event;
 	int ret;
 	int i;
 	int j;
@@ -1306,6 +1306,11 @@ static int charger_manager_register_extcon(struct charger_manager *cm)
 			}
 			cable->charger = charger;
 			cable->cm = cm;
+
+			event = extcon_get_state(cable->extcon_dev,
+				cable->extcon_type);
+			charger_extcon_notifier(&cable->nb,
+				event, NULL);
 		}
 	}
 

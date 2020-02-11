@@ -270,6 +270,10 @@
 	};
 };
 
+&fuelgauge {
+	maxim,rcomp-value = <0xd000>;
+};
+
 &modem {
 	compatible = "samsung,ste-m5730";
 

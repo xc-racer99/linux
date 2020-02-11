@@ -288,6 +288,10 @@
 	};
 };
 
+&fuelgauge {
+	maxim,rcomp-value = <0xb000>;
+};
+
 &modem {
 	compatible = "samsung,intel-xmm6160";
 

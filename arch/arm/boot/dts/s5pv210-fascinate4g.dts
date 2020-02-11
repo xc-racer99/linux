@@ -270,6 +270,10 @@
 	};
 };
 
+&fuelgauge {
+	maxim,rcomp-value = <0xd000>;
+};
+
 &pinctrl0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&sleep_cfg>;

@@ -10,6 +10,7 @@
 #include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/mutex.h>
+#include <linux/property.h>
 #include <linux/err.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
@@ -33,6 +34,7 @@ struct max17040_chip {
 	struct delayed_work		work;
 	struct power_supply		*battery;
 	struct max17040_platform_data	*pdata;
+	u16				rcomp_value;
 
 	/* State Of Connect */
 	int online;
@@ -127,6 +129,13 @@ static void max17040_get_version(struct i2c_client *client)
 	dev_info(&client->dev, "MAX17040 Fuel-Gauge Ver 0x%x\n", version);
 }
 
+static void max17040_set_rcomp(struct i2c_client *client,
+	struct max17040_chip *chip)
+{
+	if (chip->rcomp_value > 0)
+		max17040_write_reg(client, MAX17040_RCOMP, chip->rcomp_value);
+}
+
 static void max17040_get_online(struct i2c_client *client)
 {
 	struct max17040_chip *chip = i2c_get_clientdata(client);
@@ -207,6 +216,10 @@ static int max17040_probe(struct i2c_client *client,
 	chip->client = client;
 	chip->pdata = client->dev.platform_data;
 
+	if (device_property_read_u16(&client->dev, "maxim,rcomp-value",
+				     &chip->rcomp_value) < 0)
+		chip->rcomp_value = 0;
+
 	i2c_set_clientdata(client, chip);
 	psy_cfg.drv_data = chip;
 
@@ -219,6 +232,7 @@ static int max17040_probe(struct i2c_client *client,
 
 	max17040_reset(client);
 	max17040_get_version(client);
+	max17040_set_rcomp(client, chip);
 
 	INIT_DEFERRABLE_WORK(&chip->work, max17040_work);
 	queue_delayed_work(system_power_efficient_wq, &chip->work,

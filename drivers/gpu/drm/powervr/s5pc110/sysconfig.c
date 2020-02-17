@@ -34,10 +34,11 @@
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/clk.h>
+#include <linux/cpu.h>
 #include <linux/err.h>
-#include <linux/cpufreq.h>
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
+#include <linux/pm_qos.h>
 
 #define REAL_HARDWARE 1
 
@@ -88,36 +89,20 @@ IMG_UINT32   PVRSRV_BridgeDispatchKM( IMG_UINT32  Ioctl,
  * The bus speed is only lowered when the
  * CPU freq is below 200MHz.
  */
-#define MIN_CPU_KHZ_FREQ 200000
+#define MIN_CPU_KHZ_FREQ 100000
+#define MIN_G3D_CPU_KHZ_FREQ 200000
 
 static struct clk *g3d_clock;
 static bool running;
 
-static int limit_adjust_cpufreq_notifier(struct notifier_block *nb,
-					 unsigned long event, void *data)
-{
-	struct cpufreq_policy *policy = data;
-
-	if (event != CPUFREQ_ADJUST)
-		return 0;
-
-	/* This is our indicator of GPU activity */
-	if (running)
-		cpufreq_verify_within_limits(policy, MIN_CPU_KHZ_FREQ,
-					     policy->cpuinfo.max_freq);
-
-	return 0;
-}
-
-static struct notifier_block cpufreq_limit_notifier = {
-	.notifier_call = limit_adjust_cpufreq_notifier,
-};
+struct dev_pm_qos_request qos_req;
 
 static PVRSRV_ERROR EnableSGXClocks(void)
 {
 	running = true;
 	clk_prepare_enable(g3d_clock);
-	cpufreq_update_policy(current_thread_info()->cpu);
+
+	dev_pm_qos_update_request(&qos_req, MIN_G3D_CPU_KHZ_FREQ);
 
 	return PVRSRV_OK;
 }
@@ -126,7 +111,8 @@ static PVRSRV_ERROR DisableSGXClocks(void)
 {
 	clk_disable_unprepare(g3d_clock);
 	running = false;
-	cpufreq_update_policy(current_thread_info()->cpu);
+
+	dev_pm_qos_update_request(&qos_req, MIN_CPU_KHZ_FREQ);
 
 	return PVRSRV_OK;
 }
@@ -222,11 +208,28 @@ PVRSRV_ERROR SysInitialise(IMG_VOID)
 #if defined(SUPPORT_ACTIVE_POWER_MANAGEMENT)
 	{
 		extern struct platform_device *gpsPVRLDMDev;
+		struct device *dev;
+		int ret;
 
 		g3d_clock = devm_clk_get(&gpsPVRLDMDev->dev, "sclk");
 		if (IS_ERR(g3d_clock))
 		{
 			PVR_DPF((PVR_DBG_ERROR, "G3D failed to find g3d clock source-enable"));
+			return PVRSRV_ERROR_INIT_FAILURE;
+		}
+
+		dev = get_cpu_device(0);
+		if (unlikely(!dev)) {
+			pr_warn("No cpu device!\n");
+			return PVRSRV_ERROR_INIT_FAILURE;
+		}
+
+		ret = dev_pm_qos_add_request(dev, &qos_req,
+					     DEV_PM_QOS_MIN_FREQUENCY,
+					     MIN_CPU_KHZ_FREQ);
+		if (ret < 0) {
+			pr_err("%s: Failed to add freq constraint (%d)\n", __func__,
+			       ret);
 			return PVRSRV_ERROR_INIT_FAILURE;
 		}
 
@@ -529,8 +532,6 @@ PVRSRV_ERROR SysFinalise(IMG_VOID)
 
 #if defined(SUPPORT_ACTIVE_POWER_MANAGEMENT)
 	DisableSGXClocks();
-	cpufreq_register_notifier(&cpufreq_limit_notifier,
-				  CPUFREQ_POLICY_NOTIFIER);
 #endif 
 
 	return PVRSRV_OK;
@@ -561,9 +562,7 @@ PVRSRV_ERROR SysDeinitialise (SYS_DATA *psSysData)
 
 #if defined(SUPPORT_ACTIVE_POWER_MANAGEMENT)
 	/* TODO: regulator and clk put. */
-	cpufreq_unregister_notifier(&cpufreq_limit_notifier,
-				    CPUFREQ_POLICY_NOTIFIER);
-	cpufreq_update_policy(current_thread_info()->cpu);
+	dev_pm_qos_remove_request(&qos_req);
 #endif
 
 #if defined(SYS_USING_INTERRUPTS)

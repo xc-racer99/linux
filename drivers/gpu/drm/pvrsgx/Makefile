@@ -147,6 +147,12 @@ ifneq ($(CONFIG_SGX_SUNXI),)
 	$(Q)SOC_VENDOR=allwinner SOC_FAMILY=sunxi SOC=sun8i-a83t SGX=sgx544 SGX_FLAG=SGX544 SGX_REV=116 $(MAKE) TARGET_TYPE=$(CONFIG_SGX_SUNXI) $(build)=$(SOURCE)
 	$(Q)if [ -r $(SOURCE)/modules.order ]; then cat $(SOURCE)/modules.order >>$(obj)/modules.order; fi
 endif # CONFIG_SGX_SUNXI
+ifneq ($(CONFIG_SGX_S5PV210),)
+	@$(kecho) "  MAKE    $(obj): s5pv210"
+# Fix versions
+	$(Q)SOC_VENDOR=samsung SOC_FAMILY=s5pc110 SOC=s5pv210 SGX=sgx540 SGX_FLAG=SGX540 SGX_REV=120 $(MAKE) TARGET_TYPE=$(CONFIG_SGX_S5PV210) $(build)=$(SOURCE)
+	$(Q)if [ -r $(SOURCE)/modules.order ]; then cat $(SOURCE)/modules.order >>$(obj)/modules.order; fi
+endif # CONFIG_SGX_S5PV210
 # there is also SOC_FAMILY=sgx_pc_i686_tc3 whatever this is
 #
 # only this should be remaining and be enabled automatically

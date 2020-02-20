@@ -145,3 +145,13 @@ void PVRSRVDriverShutdown(struct platform_device *pdev);
 #define JZ4780_SGX540_120(comp, dat)
 #endif
 
+#ifdef samsung_s5pv210_sgx540_120
+#define S5PV210_SGX540_120(comp, dat)	\
+	{				\
+		.compatible = comp,	\
+		.data = dat,		\
+	},
+#else
+#define S5PV210_SGX540_120(comp, dat)
+#endif
+

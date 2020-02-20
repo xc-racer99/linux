@@ -221,6 +221,9 @@ static const struct pvr_capabilities __maybe_unused pvr_jz4780 = {
 	.smp = true,
 };
 
+static const struct pvr_capabilities __maybe_unused pvr_s5pc110 = {
+};
+
 static const struct of_device_id pvr_ids[] = {
 	OMAP3_SGX530_121("ti,omap3-sgx530-121", &pvr_omap3)
 	OMAP3630_SGX530_125("ti,omap3-sgx530-125", &pvr_omap3)
@@ -232,6 +235,7 @@ static const struct of_device_id pvr_ids[] = {
 	OMAP5_SGX544_116("ti,omap5-sgx544-116", &pvr_omap5)
 	DRA7_SGX544_116("ti,dra7-sgx544-116", &pvr_omap5)
 	JZ4780_SGX540_120("ingenic,jz4780-sgx540-120", &pvr_jz4780)
+	S5PV210_SGX540_120("samsung,s5pv210-sgx540-120", &pvr_s5pc110)
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, pvr_ids);

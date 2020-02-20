@@ -90,6 +90,12 @@ config SGX_SUNXI
 	---help---
 	  Support for the PowerVR SGX 3D core inside Allwinner A31 or A83T.
 
+config SGX_S5PV210
+	tristate "PowerVR SGX inside s5pv210 SoC"
+	depends on SGX && ARCH_S5PV210
+	---help---
+	  Support for the PowerVR SGX 3D core inside Samsung S5PC110/S5PV210.
+
 config SGX_GENERIC
 	tristate "PowerVR SGX generic driver"
 	depends on SGX

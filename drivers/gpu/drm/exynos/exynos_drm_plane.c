@@ -185,6 +185,8 @@ exynos_drm_plane_check_format(const struct exynos_drm_plane_config *config,
 			return -ENOTSUPP;
 		break;
 
+	/* Allow DRM_FORMAT_RESERVED for closed-source PVR module */
+	case DRM_FORMAT_RESERVED:
 	case DRM_FORMAT_MOD_LINEAR:
 		break;
 

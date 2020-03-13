@@ -84,7 +84,7 @@ static ssize_t sipc_misc_write(struct file *filp, const char __user *buf,
 	struct sk_buff *skb;
 	union sipc_header hdr;
 	unsigned char *data;
-	int frame_len, header_size, tx_size, ret;
+	int frame_len, header_size;
 
 	header_size = sipc_get_header_size(chan->format);
 	frame_len = sizeof(HDLC_START) + header_size

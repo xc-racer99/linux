@@ -11,3 +11,15 @@ config NET_SAMSUNG_IPC
 	  link devices (MIPI-HSI, USB, etc.) to actually use this.
 
 	  If unsure, say N.
+
+config NET_SAMSUNG_IPC_ONEDRAM
+	tristate "Samsung IPC network protocol support"
+	depends on ARCH_S5PV210 || COMPILE_TEST
+	depends on NET_SAMSUNG_IPC
+	depends on OF
+	---help---
+	  This driver adds support for the OneDRAM backend for Samsung's IPC protocol.
+	  This protocol multiplexes a number of different command streams and
+	  raw network interfaces over a single link.
+
+	  If unsure, say N.

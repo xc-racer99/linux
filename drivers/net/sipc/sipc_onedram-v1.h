@@ -1,0 +1,104 @@
+#ifndef __SIPC_ONEDRAM_H__
+#define __SIPC_ONEDRAM_H__
+
+/* protocol definitions */
+#define MB_VALID		0x0080
+#define MB_COMMAND		0x0040
+
+/* CMD_INIT_END extended bit */
+#define CP_BOOT_ONLINE		0x0000
+#define CP_BOOT_AIRPLANE	0x1000
+#define AP_OS_ANDROID		0x0100
+#define AP_OS_WINMOBILE		0x0200
+#define AP_OS_LINUX		0x0300
+#define AP_OS_SYMBIAN		0x0400
+
+/* CMD_PHONE_START extended bit */
+#define CP_QUALCOMM		0x0100
+#define CP_INFINEON		0x0200
+#define CP_BROADCOM		0x0300
+
+#define MBC_NONE		0x0000
+#define MBC_INIT_START		0x0001
+#define MBC_INIT_END		0x0002
+#define MBC_REQ_ACTIVE		0x0003
+#define MBC_RES_ACTIVE		0x0004
+#define MBC_TIME_SYNC		0x0005
+#define MBC_POWER_OFF		0x0006
+#define MBC_RESET		0x0007
+#define MBC_PHONE_START		0x0008
+#define MBC_ERR_DISPLAY		0x0009
+#define MBC_SUSPEND		0x000A
+#define MBC_RESUME		0x000B
+#define MBC_EMER_DOWN		0x000C
+#define MBC_REQ_SEM		0x000D
+#define MBC_RES_SEM		0x000E
+#define MBC_MAX			0x000F
+
+/* data mailbox flags */
+#define MBD_SEND_FMT		0x0002
+#define MBD_SEND_RAW		0x0001
+#define MBD_SEND_RFS		0x0100
+
+#define MODEM_MSG_SBL_DONE		0x12341234
+#define MODEM_CMD_BINARY_LOAD		0x45674567
+#define MODEM_MSG_BINARY_DONE		0xabcdabcd
+
+#define MODEM_CMD_RAMDUMP_START		0xDEADDEAD
+#define MODEM_MSG_RAMDUMP_LARGE		0x0ADD0ADD // 16MB - 2KB
+#define MODEM_CMD_RAMDUMP_MORE		0xEDEDEDED
+#define MODEM_MSG_RAMDUMP_SMALL		0xFADEFADE // 5MB + 4KB
+
+#define MODEM_CMD_LOGDUMP_START		0x19732864
+#define MODEM_MSG_LOGDUMP_DONE		0x00001973
+
+#define RAMDUMP_LARGE_SIZE	(16*1024*1024 - 2*1024)
+#define RAMDUMP_SMALL_SIZE	(5*1024*1024 + 4*1024)
+
+/* onedram shared memory map */
+#define OFF_MAGIC		0x00000000
+#define OFF_ACCESS		0x00000004
+
+#define OFF_FMT_TX_HEAD		0x00000010
+#define OFF_FMT_TX_TAIL		0x00000014
+#define OFF_FMT_RX_HEAD		0x00000018
+#define OFF_FMT_RX_TAIL		0x0000001C
+#define OFF_RAW_TX_HEAD		0x00000020
+#define OFF_RAW_TX_TAIL		0x00000024
+#define OFF_RAW_RX_HEAD		0x00000028
+#define OFF_RAW_RX_TAIL		0x0000002C
+#define OFF_RFS_TX_HEAD		0x00000030
+#define OFF_RFS_TX_TAIL		0x00000034
+#define OFF_RFS_RX_HEAD		0x00000038
+#define OFF_RFS_RX_TAIL		0x0000003C
+
+#define OFF_ERROR_MSG		0x00001000
+#define SIZ_ERROR_MSG		160
+
+#define OFF_FMT_TX_DATA		0x000FE000
+#define OFF_FMT_RX_DATA		0x000FF000
+#define SIZ_FMT_DATA		0x00001000
+#define OFF_RAW_TX_DATA		0x00100000
+#define OFF_RAW_RX_DATA		0x00200000
+#define SIZ_RAW_DATA		0x00100000
+#define OFF_RFS_TX_DATA		0x00300000
+#define OFF_RFS_RX_DATA		0x00400000
+#define SIZ_RFS_DATA		0x00100000
+
+#define OFF_LOGDUMP_DATA	0x00A00000
+#define SIZ_LOGDUMP_DATA	0x00300000
+
+/* OneDRAM Registers
+ *
+ * Mailboxes are named based on who writes to them.
+ * MBOX_BP is written to by the (B)aseband (P)rocessor
+ * and only readable by the (A)pplication (P)rocessor.
+ * MBOX_AP is the opposite.
+ */
+#define OFF_SEM		0xFFF800
+#define OFF_MBOX_BP	0xFFF820
+#define OFF_MBOX_AP	0xFFF840
+#define OFF_CHECK_BP	0xFFF8A0
+#define OFF_CHECK_AP	0xFFF8C0
+
+#endif /* __SIPC_ONEDRAM_H__ */

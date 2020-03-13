@@ -35,7 +35,7 @@ static int sipc_netdev_xmit(struct sk_buff *skb, struct net_device *ndev)
 	struct sk_buff *new_skb;
 	const u8 hdlc_start = HDLC_START;
 	const u8 hdlc_end = HDLC_END;
-	int headroom, ret, tailroom;
+	int headroom, tailroom;
 
 	raw_hdr.channel = priv->chan->channel & 0x1f;
 	raw_hdr.len = skb->len + sizeof(raw_hdr);

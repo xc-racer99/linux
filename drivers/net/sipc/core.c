@@ -511,7 +511,7 @@ static int sipc_parse_dt(struct platform_device *pdev,
 
 	sipc->channels = devm_kzalloc(&pdev->dev, sizeof(*sipc->channels) * count, GFP_KERNEL);
 
-	ret = of_property_read_u32(child, "protocol", &sipc->version);
+	ret = of_property_read_u32(np, "protocol", &sipc->version);
 	if (ret != 0) {
 		dev_warn(&pdev->dev, "Failed to read protocol version, assuming v4.0: %d\n", ret);
 		sipc->version = SAMSUNG_IPC_VERSION_40;

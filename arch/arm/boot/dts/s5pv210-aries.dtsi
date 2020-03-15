@@ -6,6 +6,7 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/net/samsung_ipc.h>
 #include "s5pv210.dtsi"
 
 / {
@@ -530,6 +531,48 @@
 		status = "disabled";
 
 		/* Yamaha yas529 magnetometer, no mainline binding */
+	};
+
+	modem {
+		compatible = "samsung,sipc4-modem";
+		protocol = <SAMSUNG_IPC_VERSION_41>;
+		#size-cells = <0>;
+		#address-cells = <1>;
+
+		ipc-fmt-channel@1 {
+			reg = <0x1>;
+			format = <SAMSUNG_IPC_FORMAT_FMT>;
+			type = <SAMSUNG_IPC_TYPE_MISC>;
+			label = "umts_ipc";
+		};
+
+		ipc-rfs-channel@41 {
+			reg = <0x41>;
+			format = <SAMSUNG_IPC_FORMAT_RFS>;
+			type = <SAMSUNG_IPC_TYPE_MISC>;
+			label = "umts_rfs";
+		};
+
+		ipc-raw-channel@2a {
+			reg = <0x2a>;
+			format = <SAMSUNG_IPC_FORMAT_RAW>;
+			type = <SAMSUNG_IPC_TYPE_NETDEV>;
+			label = "rmnet0";
+		};
+
+		ipc-raw-channel@2b {
+			reg = <0x2b>;
+			format = <SAMSUNG_IPC_FORMAT_RAW>;
+			type = <SAMSUNG_IPC_TYPE_NETDEV>;
+			label = "rmnet1";
+		};
+
+		ipc-raw-channel@2c {
+			reg = <0x2c>;
+			format = <SAMSUNG_IPC_FORMAT_RAW>;
+			type = <SAMSUNG_IPC_TYPE_NETDEV>;
+			label = "rmnet2";
+		};
 	};
 
 	vibrator: pwm-vibrator {

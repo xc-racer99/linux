@@ -26,7 +26,7 @@ struct sipc_link {
 
 struct sipc_link_callback {
     /* called when a new packet is ready to be received */
-    void (*receive)(struct sipc_link_callback *cb, void *buf, size_t bufsz, int format);
+    int (*receive)(struct sipc_link_callback *cb, void *buf, size_t bufsz, int format);
 };
 
 int sipc_set_link(struct sipc_link *new_link, unsigned int type);

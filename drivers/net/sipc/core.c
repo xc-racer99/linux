@@ -368,7 +368,7 @@ static void sipc_tx_work(struct work_struct *work) {
 	queue_delayed_work(sipc->tx_wq, &sipc->tx_work, msecs_to_jiffies(20));
 }
 
-static void sipc_receive_callback(struct sipc_link_callback *cb, void *b,
+static int sipc_receive_callback(struct sipc_link_callback *cb, void *b,
 		size_t bufsz, int format)
 {
 	struct samsung_ipc *sipc = cb_to_ipc(cb);
@@ -381,12 +381,12 @@ static void sipc_receive_callback(struct sipc_link_callback *cb, void *b,
 
 	if (format == SAMSUNG_IPC_FORMAT_CMD) {
 		sipc_rx_cmd(sipc, buf, bufsz);
-		return;
+		return 0;
 	}
 
 	if (!chan) {
 		dev_err(sipc->dev, "Couldn't find channel with format=%d. Dropping packet!\n", format);
-		return;
+		return -ENOENT;
 	}
 
 	/* don't check header if we're waiting for more data */
@@ -397,7 +397,7 @@ next_frame:
 	len = sipc_hdlc_header_check(&chan->pending_rx_header, buf, bufsz, format);
 	if (len < 0) {
 		dev_err(sipc->dev, "Invalid message format=%d\n", format);
-		return;
+		return -EINVAL;
 	}
 
 	buf += len;
@@ -405,7 +405,7 @@ next_frame:
 	bufsz -= len;
 
 	if (!bufsz)
-		return;
+		return 0;
 
 skip_header_check:
 	data_size = sipc_get_message_size(chan) - header_size;
@@ -420,7 +420,7 @@ skip_header_check:
 			skb = alloc_skb(header_size, GFP_KERNEL);
 			if (!skb) {
 				dev_err(sipc->dev, "Out of memory\n");
-				return;
+				return -ENOMEM;
 			}
 			memcpy(skb_put(skb, header_size), &chan->pending_rx_header.sipc_header.rfs, header_size);
 
@@ -430,7 +430,7 @@ skip_header_check:
 		skb = alloc_skb(len, GFP_KERNEL);
 		if (!skb) {
 			dev_err(sipc->dev, "Out of memory\n");
-			return;
+			return -ENOMEM;
 		}
 
 		chan->pending_rx_skb = skb;
@@ -460,7 +460,7 @@ skip_header_check:
 		skb = alloc_skb(len, GFP_KERNEL);
 		if (!skb) {
 			dev_err(sipc->dev, "Out of memory\n");
-			return;
+			return -ENOMEM;
 		}
 
 		chan->pending_rx_skb = skb;
@@ -470,12 +470,12 @@ skip_header_check:
 
 	if (!bufsz && chan->pending_rx_header.frag_len) {
 		/* Still waiting for end-of-packet. It will come in the next frame */
-		return;
+		return 0;
 	}
 
 	if (buf[0] != HDLC_END) {
 		dev_err(sipc->dev, "Invalid HDLC end-of-frame %#x\n", buf[0]);
-		return;
+		return -EINVAL;
 	}
 
 	buf += sizeof(HDLC_END);
@@ -492,8 +492,8 @@ skip_header_check:
 	if (bufsz)
 		goto next_frame;
 
-	/* TODO: clean up properly on error */
-	/*return done;*/
+	/* TODO: clean up properly? */
+	return 0;
 }
 
 static int sipc_parse_dt(struct platform_device *pdev,

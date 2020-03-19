@@ -96,9 +96,7 @@ static int sipc_hdlc_header_check(struct hdlc_header *hdr, char *buf, size_t buf
 
 	/* first frame */
 	if (!hdr->start) {
-		if (buf[0] == HDLC_START)
-			len = 1;
-		else
+		if (buf[0] != HDLC_START)
 			return -EBADMSG;
 
 		hdr->start = HDLC_START;

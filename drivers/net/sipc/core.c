@@ -109,7 +109,7 @@ static int sipc_hdlc_header_check(struct hdlc_header *hdr, char *buf, size_t buf
 
 	if (hdr->len < head_size) {
 		len = min(bufsz, head_size - hdr->len);
-		memcpy(&hdr->sipc_header, buf, len);
+		memcpy(&hdr->sipc_header + hdr->len, buf, len);
 		hdr->len += len;
 		done += len;
 	}

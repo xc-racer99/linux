@@ -372,7 +372,7 @@ static int sipc_receive_callback(struct sipc_link_callback *cb, void *b,
 	struct samsung_ipc *sipc = cb_to_ipc(cb);
 	struct sipc_io_channel *chan = find_io_channel(sipc, -1, format);
 	struct sk_buff *skb = NULL;
-	size_t len = 0, done = 0, packet_size = 0;
+	size_t len = 0, done = 0;
 	int header_size = sipc_get_header_size(format);
 	size_t data_size = 0, rest_size = 0;
 	char *buf = (char *)b;
@@ -408,6 +408,12 @@ next_frame:
 skip_header_check:
 	data_size = sipc_get_message_size(chan) - header_size;
 	rest_size = data_size - chan->pending_rx_header.frag_len;
+
+	if (data_size < 0 || rest_size < 0) {
+		dev_err(sipc->dev, "Negative size\n");
+		return -EBADMSG;
+	}
+
 	/* TODO: what happens if we fail to allocate skbuff? */
 	if (!chan->pending_rx_skb) {
 		len = min(data_size, (size_t)MAX_RX_SIZE);
@@ -477,9 +483,7 @@ skip_header_check:
 	}
 
 	buf += sizeof(HDLC_END);
-	len -= sizeof(HDLC_END);
-
-	packet_size = sipc_get_message_size(chan) + sizeof(HDLC_END) + sizeof(HDLC_START);
+	bufsz -= sizeof(HDLC_END);
 
 	sipc_do_rx(chan->pending_rx_skb, chan);
 

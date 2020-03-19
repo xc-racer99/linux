@@ -99,6 +99,8 @@ static ssize_t sipc_misc_write(struct file *filp, const char __user *buf,
 	if (chan->format != SAMSUNG_IPC_FORMAT_RAMDUMP) {
 		data = skb_put(skb, sizeof(HDLC_START));
 		data[0] = HDLC_START;
+
+		/* RFS header is sent separately, as needs to be untouched */
 		if (chan->format != SAMSUNG_IPC_FORMAT_RFS) {
 			header_size = sipc_get_header(chan, &hdr, count);
 			memcpy(skb_put(skb, header_size), &hdr, header_size);
@@ -109,6 +111,11 @@ static ssize_t sipc_misc_write(struct file *filp, const char __user *buf,
 		dev_kfree_skb_any(skb);
 		return -EFAULT;
 	}
+
+	if (chan->format != SAMSUNG_IPC_FORMAT_RAMDUMP) {
+		data = skb_put(skb, sizeof(HDLC_END));
+		data[0] = HDLC_END;
+	};
 
 	switch (chan->format) {
 	case SAMSUNG_IPC_FORMAT_FMT:
@@ -123,6 +130,8 @@ static ssize_t sipc_misc_write(struct file *filp, const char __user *buf,
 	default:
 		dev_err(chan->sipc->dev, "Don't know how to tx format %d\n", chan->format);
 	}
+
+	queue_delayed_work(chan->sipc->tx_wq, &chan->sipc->tx_work, msecs_to_jiffies(5));
 
 	return count;
 }

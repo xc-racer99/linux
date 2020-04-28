@@ -112,9 +112,11 @@ properties:
       - const: sgx
 
   clocks:
+    minItems: 1
     maxItems: 4
 
   clock-names:
+    minItems: 1
     maxItems: 4
     items:
       - const: core

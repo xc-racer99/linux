@@ -206,7 +206,7 @@ PVRSRV_ERROR SysInitialise(IMG_VOID)
 		struct device *dev;
 		int ret;
 
-		g3d_clock = devm_clk_get(&gpsPVRLDMDev->dev, "sclk");
+		g3d_clock = devm_clk_get(&gpsPVRLDMDev->dev, "core");
 		if (IS_ERR(g3d_clock))
 		{
 			PVR_DPF((PVR_DBG_ERROR, "G3D failed to find g3d clock source-enable"));

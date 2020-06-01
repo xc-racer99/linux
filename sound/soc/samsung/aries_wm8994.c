@@ -13,6 +13,7 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+#include "i2s.h"
 #include "../codecs/wm8994.h"
 
 #define ARIES_MCLK1_FREQ 24000000
@@ -115,6 +116,7 @@ static irqreturn_t headset_det_irq_thread(int irq, void *data)
 	ret = iio_read_channel_processed(priv->adc, &adc);
 	if (ret < 0) {
 		/* failed to read ADC, so assume headphone */
+		pr_err("%s failed to read ADC, assuming headphones", __func__);
 		snd_soc_jack_report(&aries_headset, SND_JACK_HEADPHONE,
 				SND_JACK_HEADSET);
 	} else {
@@ -128,7 +130,7 @@ static irqreturn_t headset_det_irq_thread(int irq, void *data)
 		pr_err("%s failed disable micbias: %d", __func__, ret);
 
 	/* Disable earpath selector when no mic connected */
-	if (aries_headset.status & SND_JACK_MICROPHONE)
+	if (!(aries_headset.status & SND_JACK_MICROPHONE))
 		gpiod_set_value(priv->gpio_earpath_sel, 0);
 
 	return IRQ_HANDLED;
@@ -229,22 +231,8 @@ static int aries_headset_bias(struct snd_soc_dapm_widget *w,
 }
 
 static const struct snd_kcontrol_new aries_controls[] = {
-	SOC_DAPM_PIN_SWITCH("HP"),
-	SOC_DAPM_PIN_SWITCH("SPK"),
-	SOC_DAPM_PIN_SWITCH("RCV"),
-	SOC_DAPM_PIN_SWITCH("LINE"),
-
-	SOC_DAPM_PIN_SWITCH("Main Mic"),
-	SOC_DAPM_PIN_SWITCH("Headset Mic"),
-
-	SOC_DAPM_PIN_SWITCH("Bluetooth Mic"),
-	SOC_DAPM_PIN_SWITCH("Bluetooth SPK"),
-
 	SOC_DAPM_PIN_SWITCH("Modem In"),
 	SOC_DAPM_PIN_SWITCH("Modem Out"),
-
-	/* This must be last as it is conditionally not used */
-	SOC_DAPM_PIN_SWITCH("FM In"),
 };
 
 static const struct snd_soc_dapm_widget aries_dapm_widgets[] = {
@@ -409,7 +397,7 @@ static int aries_late_probe(struct snd_soc_card *card)
 }
 
 static const struct snd_soc_pcm_stream baseband_params = {
-	.formats = SNDRV_PCM_FMTBIT_S32_LE,
+	.formats = SNDRV_PCM_FMTBIT_S16_LE,
 	.rate_min = 8000,
 	.rate_max = 8000,
 	.channels_min = 1,
@@ -471,7 +459,7 @@ static struct snd_soc_dai_driver aries_ext_dai[] = {
 };
 
 SND_SOC_DAILINK_DEFS(aif1,
-	DAILINK_COMP_ARRAY(COMP_EMPTY()),
+	DAILINK_COMP_ARRAY(COMP_CPU(SAMSUNG_I2S_DAI)),
 	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, "wm8994-aif1")),
 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
 
@@ -571,11 +559,9 @@ static int aries_audio_probe(struct platform_device *pdev)
 	match = of_match_node(samsung_wm8994_of_match, np);
 	priv->variant = match->data;
 
-	/* Remove FM controls and widgets if not present */
-	if (!priv->variant->has_fm_radio) {
-		card->num_controls--;
+	/* Remove FM widget if not present */
+	if (!priv->variant->has_fm_radio)
 		card->num_dapm_widgets--;
-	}
 
 	priv->reg_main_micbias = devm_regulator_get(dev, "main-micbias");
 	if (IS_ERR(priv->reg_main_micbias)) {

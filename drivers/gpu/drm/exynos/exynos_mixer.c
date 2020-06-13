@@ -105,12 +105,16 @@ struct mixer_context {
 	spinlock_t		reg_slock;
 	struct clk		*mixer;
 	struct clk		*vp;
-	struct clk		*hdmi;
+	struct clk		*intf;
 	struct clk		*sclk_mixer;
-	struct clk		*sclk_hdmi;
+	struct clk		*sclk_intf;
+	struct clk		*sclk_dac;
 	struct clk		*mout_mixer;
+	struct clk		*mout_dac;
 	enum mixer_version_id	mxr_ver;
 	int			scan_value;
+
+	enum exynos_drm_output_type	output_type;
 };
 
 struct mixer_drv_data {
@@ -448,7 +452,13 @@ static void mixer_cfg_rgb_fmt(struct mixer_context *ctx, struct drm_display_mode
 	else
 		val |= MXR_CFG_QUANT_RANGE_LIMITED;
 
-	mixer_reg_writemask(ctx, MXR_CFG, val, MXR_CFG_RGB_FMT_MASK);
+	if (ctx->output_type == EXYNOS_DISPLAY_TYPE_TVOUT)
+		val |= MXR_CFG_OUT_YUV444;
+	else
+		val |= MXR_CFG_OUT_RGB888;
+
+	mixer_reg_writemask(ctx, MXR_CFG, val, MXR_CFG_RGB_FMT_MASK |
+		MXR_CFG_OUT_MASK);
 }
 
 static void mixer_cfg_layer(struct mixer_context *ctx, unsigned int win,
@@ -702,7 +712,10 @@ static void mixer_win_reset(struct mixer_context *ctx)
 
 	spin_lock_irqsave(&ctx->reg_slock, flags);
 
-	mixer_reg_writemask(ctx, MXR_CFG, MXR_CFG_DST_HDMI, MXR_CFG_DST_MASK);
+	if (ctx->output_type == EXYNOS_DISPLAY_TYPE_TVOUT)
+		mixer_reg_writemask(ctx, MXR_CFG, MXR_CFG_DST_SDO, MXR_CFG_DST_MASK);
+	else
+		mixer_reg_writemask(ctx, MXR_CFG, MXR_CFG_DST_HDMI, MXR_CFG_DST_MASK);
 
 	/* set output in RGB888 mode */
 	mixer_reg_writemask(ctx, MXR_CFG, MXR_CFG_OUT_RGB888, MXR_CFG_OUT_MASK);
@@ -785,17 +798,33 @@ static int mixer_resources_init(struct mixer_context *mixer_ctx)
 		return -ENODEV;
 	}
 
-	mixer_ctx->hdmi = devm_clk_get(dev, "hdmi");
-	if (IS_ERR(mixer_ctx->hdmi)) {
+	mixer_ctx->intf = devm_clk_get(dev, "hdmi");
+	if (!IS_ERR(mixer_ctx->intf)) {
+		mixer_ctx->sclk_intf = devm_clk_get(dev, "sclk_hdmi");
+		if (IS_ERR(mixer_ctx->sclk_intf)) {
+			dev_err(dev, "failed to get clock 'sclk_hdmi'\n");
+			return -ENODEV;
+		}
+		mixer_ctx->output_type = EXYNOS_DISPLAY_TYPE_HDMI;
+	} else if (PTR_ERR(mixer_ctx->intf) == -ENOENT) {
+		/* Try for TV clock */
+		mixer_ctx->intf = devm_clk_get(dev, "dac");
+		if (IS_ERR(mixer_ctx->intf)) {
+			dev_err(dev, "failed to get clock 'dac' or 'hdmi'");
+			return -ENODEV;
+		}
+
+		mixer_ctx->sclk_intf = devm_clk_get(dev, "sclk_dac");
+		if (IS_ERR(mixer_ctx->sclk_intf)) {
+			dev_err(dev, "failed to get clock 'sclk_dac'\n");
+			return -ENODEV;
+		}
+		mixer_ctx->output_type = EXYNOS_DISPLAY_TYPE_TVOUT;
+	} else {
 		dev_err(dev, "failed to get clock 'hdmi'\n");
-		return PTR_ERR(mixer_ctx->hdmi);
+		return PTR_ERR(mixer_ctx->intf);
 	}
 
-	mixer_ctx->sclk_hdmi = devm_clk_get(dev, "sclk_hdmi");
-	if (IS_ERR(mixer_ctx->sclk_hdmi)) {
-		dev_err(dev, "failed to get clock 'sclk_hdmi'\n");
-		return -ENODEV;
-	}
 	res = platform_get_resource(mixer_ctx->pdev, IORESOURCE_MEM, 0);
 	if (res == NULL) {
 		dev_err(dev, "get memory resource failed.\n");
@@ -849,9 +878,16 @@ static int vp_resources_init(struct mixer_context *mixer_ctx)
 			return -ENODEV;
 		}
 
-		if (mixer_ctx->sclk_hdmi && mixer_ctx->mout_mixer)
+		mixer_ctx->mout_dac = devm_clk_get(dev, "mout_dac");
+		if (IS_ERR(mixer_ctx->mout_dac))
+			mixer_ctx->mout_dac = NULL;
+
+		if (mixer_ctx->mout_dac)
 			clk_set_parent(mixer_ctx->mout_mixer,
-				       mixer_ctx->sclk_hdmi);
+				       mixer_ctx->mout_dac);
+		else if (mixer_ctx->sclk_intf && mixer_ctx->mout_mixer)
+			clk_set_parent(mixer_ctx->mout_mixer,
+				       mixer_ctx->sclk_intf);
 	}
 
 	res = platform_get_resource(mixer_ctx->pdev, IORESOURCE_MEM, 1);
@@ -1192,7 +1228,7 @@ static int mixer_bind(struct device *dev, struct device *manager, void *data)
 
 	exynos_plane = &ctx->planes[DEFAULT_WIN];
 	ctx->crtc = exynos_drm_crtc_create(drm_dev, &exynos_plane->base,
-			EXYNOS_DISPLAY_TYPE_HDMI, &mixer_crtc_ops, ctx);
+			ctx->output_type, &mixer_crtc_ops, ctx);
 	if (IS_ERR(ctx->crtc)) {
 		mixer_ctx_remove(ctx);
 		ret = PTR_ERR(ctx->crtc);
@@ -1264,12 +1300,14 @@ static int __maybe_unused exynos_mixer_suspend(struct device *dev)
 {
 	struct mixer_context *ctx = dev_get_drvdata(dev);
 
-	clk_disable_unprepare(ctx->hdmi);
+	clk_disable_unprepare(ctx->intf);
 	clk_disable_unprepare(ctx->mixer);
 	if (test_bit(MXR_BIT_VP_ENABLED, &ctx->flags)) {
 		clk_disable_unprepare(ctx->vp);
-		if (test_bit(MXR_BIT_HAS_SCLK, &ctx->flags))
+		if (test_bit(MXR_BIT_HAS_SCLK, &ctx->flags)) {
 			clk_disable_unprepare(ctx->sclk_mixer);
+			clk_disable_unprepare(ctx->sclk_intf);
+		}
 	}
 
 	return 0;
@@ -1287,10 +1325,10 @@ static int __maybe_unused exynos_mixer_resume(struct device *dev)
 			      ret);
 		return ret;
 	}
-	ret = clk_prepare_enable(ctx->hdmi);
+	ret = clk_prepare_enable(ctx->intf);
 	if (ret < 0) {
 		DRM_DEV_ERROR(dev,
-			      "Failed to prepare_enable the hdmi clk [%d]\n",
+			      "Failed to prepare_enable the intf clk [%d]\n",
 			      ret);
 		return ret;
 	}
@@ -1303,6 +1341,15 @@ static int __maybe_unused exynos_mixer_resume(struct device *dev)
 			return ret;
 		}
 		if (test_bit(MXR_BIT_HAS_SCLK, &ctx->flags)) {
+			ret = clk_prepare_enable(ctx->sclk_intf);
+			if (ret < 0) {
+				DRM_DEV_ERROR(dev,
+					   "Failed to prepare_enable the " \
+					   "sclk_dac clk [%d]\n",
+					   ret);
+				return ret;
+			}
+
 			ret = clk_prepare_enable(ctx->sclk_mixer);
 			if (ret < 0) {
 				DRM_DEV_ERROR(dev,

@@ -209,6 +209,9 @@ static struct exynos_drm_driver_info exynos_drm_drivers[] = {
 		DRV_PTR(hdmi_driver, CONFIG_DRM_EXYNOS_HDMI),
 		DRM_COMPONENT_DRIVER
 	}, {
+		DRV_PTR(sdo_driver, CONFIG_DRM_EXYNOS_TVOUT),
+		DRM_COMPONENT_DRIVER
+	}, {
 		DRV_PTR(vidi_driver, CONFIG_DRM_EXYNOS_VIDI),
 		DRM_COMPONENT_DRIVER | DRM_VIRTUAL_DEVICE
 	}, {

@@ -83,6 +83,12 @@ config DRM_EXYNOS_MIC
 	help
 	  Choose this option if you want to use Exynos MIC for DRM.
 
+config DRM_EXYNOS_TVOUT
+	bool "TVOut"
+	depends on DRM_EXYNOS_MIXER || COMPILE_TEST
+	help
+	  Choose this option if you want to use Exynos TV-Out for DRM.
+
 comment "Sub-drivers"
 
 config DRM_EXYNOS_G2D

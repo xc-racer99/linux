@@ -36,6 +36,8 @@ enum exynos_drm_output_type {
 	EXYNOS_DISPLAY_TYPE_LCD,
 	/* HDMI Interface. */
 	EXYNOS_DISPLAY_TYPE_HDMI,
+	/* TV-Out Interface. */
+	EXYNOS_DISPLAY_TYPE_TVOUT,
 	/* Virtual Display Interface. */
 	EXYNOS_DISPLAY_TYPE_VIDI,
 };
@@ -267,6 +269,7 @@ extern struct platform_driver dp_driver;
 extern struct platform_driver dsi_driver;
 extern struct platform_driver mixer_driver;
 extern struct platform_driver hdmi_driver;
+extern struct platform_driver sdo_driver;
 extern struct platform_driver vidi_driver;
 extern struct platform_driver g2d_driver;
 extern struct platform_driver fimc_driver;

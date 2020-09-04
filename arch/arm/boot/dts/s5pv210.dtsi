@@ -547,6 +547,32 @@
 			status = "disabled";
 		};
 
+		tvout: tvout@f9000000 {
+			compatible = "samsung,s5pv210-sdo";
+			reg = <0xf9000000 0x1000>;
+			interrupt-parent = <&vic2>;
+			interrupts = <15>;
+
+			clock-names = "dac", "sclk_dac", "mout_dac",
+				      "mout_vpll", "fout_vpll";
+			clocks = <&clocks CLK_TVENC>, <&clocks SCLK_DAC>,
+				 <&clocks MOUT_DAC>, <&clocks MOUT_VPLL>,
+				 <&clocks FOUT_VPLL>;
+
+			samsung,pmureg-phandle = <&pmu_syscon>;
+
+			status = "disabled";
+		};
+
+		mixer: mixer@f9200000 {
+			compatible = "samsung,exynos4210-mixer";
+			reg = <0xf9200000 0x2100>, <0xf9100000 0x300>;
+			interrupt-parent = <&vic2>;
+			interrupts = <11>;
+
+			status = "disabled";
+		};
+
 		dmc0: dmc@f0000000 {
 			compatible = "samsung,s5pv210-dmc";
 			reg = <0xf0000000 0x1000>;

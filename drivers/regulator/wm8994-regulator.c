@@ -82,6 +82,7 @@ static const struct regulator_desc wm8994_ldo_desc[] = {
 		.min_uV = 2400000,
 		.uV_step = 100000,
 		.enable_time = 3000,
+		.off_on_delay = 125000,
 		.owner = THIS_MODULE,
 	},
 	{
@@ -93,6 +94,7 @@ static const struct regulator_desc wm8994_ldo_desc[] = {
 		.vsel_mask = WM8994_LDO2_VSEL_MASK,
 		.ops = &wm8994_ldo2_ops,
 		.enable_time = 3000,
+		.off_on_delay = 125000,
 		.owner = THIS_MODULE,
 	},
 };

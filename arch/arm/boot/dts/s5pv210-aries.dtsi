@@ -847,6 +847,16 @@
 	memory-region = <&mfc_left>, <&mfc_right>;
 };
 
+&mixer {
+	clock-names = "mixer", "dac", "sclk_dac", "vp", "mout_mixer",
+		      "sclk_mixer", "mout_dac";
+	clocks = <&clocks CLK_MIXER>, <&clocks CLK_TVENC>,
+		 <&clocks SCLK_DAC>, <&clocks CLK_VP>,
+		 <&clocks MOUT_MIXER>, <&clocks SCLK_MIXER>,
+		 <&clocks MOUT_DAC>;
+	status = "okay";
+};
+
 &onenand {
 	status = "okay";
 
@@ -1116,6 +1126,12 @@
 	assigned-clocks = <&clocks MOUT_MMC2>, <&clocks SCLK_MMC2>;
 	assigned-clock-rates = <0>, <50000000>;
 	assigned-clock-parents = <&clocks MOUT_MPLL>;
+};
+
+&tvout {
+	vdd-supply = <&ldo8_reg>;
+
+	status = "okay";
 };
 
 &uart0 {

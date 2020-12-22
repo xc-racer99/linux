@@ -29,6 +29,7 @@ properties:
           - enum:
               - samsung,fascinate4g             # Samsung Galaxy S Fascinate 4G (SGH-T959P)
               - samsung,galaxys                 # Samsung Galaxy S (i9000)
+              - samsung,galaxysb                # Samsung Galaxy S (i9000B)
           - const: samsung,aries
           - const: samsung,s5pv210
 

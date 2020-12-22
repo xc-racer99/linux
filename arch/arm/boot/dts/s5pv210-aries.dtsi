@@ -536,7 +536,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&magnetometer_i2c_pins>;
 
-		yas529@2e {
+		compass: yas529@2e {
 			compatible = "yamaha,yas529";
 			reg = <0x2e>;
 
@@ -827,7 +827,7 @@
 	samsung,i2c-slave-addr = <0x10>;
 	status = "okay";
 
-	touchscreen@4a {
+	ts: touchscreen@4a {
 		compatible = "atmel,maxtouch";
 		reg = <0x4a>;
 		interrupt-parent = <&gpj0>;
@@ -1141,7 +1141,7 @@
 
 	status = "okay";
 
-	bluetooth {
+	bluetooth: bluetooth {
 		compatible = "brcm,bcm4329-bt";
 		max-speed = <3000000>;
 		pinctrl-names = "default";

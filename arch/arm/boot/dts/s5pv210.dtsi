@@ -239,8 +239,8 @@
 			reg = <0xeee30000 0x1000>;
 			interrupt-parent = <&vic2>;
 			interrupts = <16>;
-			dma-names = "rx", "tx", "tx-sec";
-			dmas = <&pdma1 9>, <&pdma1 10>, <&pdma1 11>;
+			dma-names = "tx", "rx", "tx-sec";
+			dmas = <&pdma1 10>, <&pdma1 9>, <&pdma1 11>;
 			clock-names = "iis",
 				      "i2s_opclk0",
 				      "i2s_opclk1";
@@ -250,7 +250,7 @@
 			samsung,idma-addr = <0xc0010000>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2s0_bus>;
-			#sound-dai-cells = <0>;
+			#sound-dai-cells = <1>;
 			status = "disabled";
 		};
 
@@ -259,13 +259,13 @@
 			reg = <0xe2100000 0x1000>;
 			interrupt-parent = <&vic2>;
 			interrupts = <17>;
-			dma-names = "rx", "tx";
-			dmas = <&pdma1 12>, <&pdma1 13>;
+			dma-names = "tx", "rx";
+			dmas = <&pdma1 13>, <&pdma1 12>;
 			clock-names = "iis", "i2s_opclk0";
 			clocks = <&clocks CLK_I2S1>, <&clocks SCLK_AUDIO1>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2s1_bus>;
-			#sound-dai-cells = <0>;
+			#sound-dai-cells = <1>;
 			status = "disabled";
 		};
 
@@ -274,13 +274,13 @@
 			reg = <0xe2a00000 0x1000>;
 			interrupt-parent = <&vic2>;
 			interrupts = <18>;
-			dma-names = "rx", "tx";
-			dmas = <&pdma1 14>, <&pdma1 15>;
+			dma-names = "tx", "rx";
+			dmas = <&pdma1 15>, <&pdma1 14>;
 			clock-names = "iis", "i2s_opclk0";
 			clocks = <&clocks CLK_I2S2>, <&clocks SCLK_AUDIO2>;
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2s2_bus>;
-			#sound-dai-cells = <0>;
+			#sound-dai-cells = <1>;
 			status = "disabled";
 		};
 

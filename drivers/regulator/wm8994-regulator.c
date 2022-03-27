@@ -70,7 +70,7 @@ static const struct regulator_ops wm8994_ldo2_ops = {
 	.set_voltage_sel = regulator_set_voltage_sel_regmap,
 };
 
-static const struct regulator_desc wm8994_ldo_desc[] = {
+static struct regulator_desc wm8994_ldo_desc[] = {
 	{
 		.name = "LDO1",
 		.id = 1,
@@ -82,7 +82,6 @@ static const struct regulator_desc wm8994_ldo_desc[] = {
 		.min_uV = 2400000,
 		.uV_step = 100000,
 		.enable_time = 3000,
-		.off_on_delay = 125000,
 		.owner = THIS_MODULE,
 	},
 	{
@@ -94,7 +93,6 @@ static const struct regulator_desc wm8994_ldo_desc[] = {
 		.vsel_mask = WM8994_LDO2_VSEL_MASK,
 		.ops = &wm8994_ldo2_ops,
 		.enable_time = 3000,
-		.off_on_delay = 125000,
 		.owner = THIS_MODULE,
 	},
 };
@@ -168,6 +166,10 @@ static int wm8994_ldo_probe(struct platform_device *pdev)
 	} else {
 		ldo->init_data = *pdata->ldo[id].init_data;
 	}
+
+	/* WM8994 requires an off-on delay while others do not */
+	if (ldo->wm8994->type == WM8994)
+		wm8994_ldo_desc[id].off_on_delay = 36000;
 
 	/*
 	 * At this point the GPIO descriptor is handled over to the
